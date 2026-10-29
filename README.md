@@ -3,8 +3,9 @@
 - Integrantes: Valentina Morales y Rodrigo Montiel.
 ## Estructura de este repo
 - /docs
-    - Instructivo completo de cómo correr la aplicación de forma local
     - Diagrama de relaciones
+    - Instructivo completo de cómo correr la aplicación de forma local
+    - Informe
 
 - /database
     - 1_creación_tablas
