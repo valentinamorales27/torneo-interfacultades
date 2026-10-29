@@ -2,12 +2,12 @@
 ## Obligatorio de Bases de datos
 - Integrantes: Valentina Morales y Rodrigo Montiel.
 ## ¿Cómo usar este repo?
-/docs:
-      Instructivo completo de cómo correr la aplicación de forma local
-      Diagrama de relaciones
-/database:
-      1_creación_tablas_SQL
-      2_inserción_datos_prueba_SQL
+- **`docs/`**
+      -Instructivo completo de cómo correr la aplicación de forma local
+      -Diagrama de relaciones
+- **`database/`**
+      -1_creación_tablas_SQL
+      -2_inserción_datos_prueba_SQL
 ## Informe:
 ### o Fundamentar decisiones de implementación
 ### o Mejoras implementadas o consideradas en el modelo de datos
