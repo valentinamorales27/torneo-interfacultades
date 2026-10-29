@@ -11,7 +11,7 @@
 - Comando: *cd backend* (el resto de comandos se ejecutarán dentro de esta carpeta)
 ## 3. Crear y activar el entorno
 - Comando 1: *python -m venv .venv* (es necesario tener instalado Python, en el caso de no tenerlo se puede descargar Python de Microsoft desde la sección de extensiones de VSCode
-- Comando 2: ```powershell.\.venv\Scripts\Activate.ps1``` (luego de ejecutarlo debería de aparecer un (.venv) frente a la línea de la terminal)
+- Comando 2: ```.\.venv\Scripts\Activate.ps1``` (luego de ejecutarlo debería de aparecer un (.venv) frente a la línea de la terminal)
 ## 4. Instalar las dependencias
 - Comando: *python -m pip install -r requirements.txt* (instala las bibliotecas necesarias para poder correr el backend.
 ## 5. Crear la basse de datos
