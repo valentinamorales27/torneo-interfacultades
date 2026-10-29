@@ -8,6 +8,12 @@
 - database/
  -1_creación_tablas_SQL
  -2_inserción_datos_prueba_SQL
+
+- Elemento 1
+- Elemento 2
+  - Subelemento
+    - Sub-sublemento
+    - 
 ## Informe:
 ### o Fundamentar decisiones de implementación
 ### o Mejoras implementadas o consideradas en el modelo de datos
