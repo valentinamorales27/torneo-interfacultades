@@ -1,7 +1,7 @@
 # Torneo Interfacultades de Fútbol 5
 ## Obligatorio de Bases de datos
 - Integrantes: Valentina Morales y Rodrigo Montiel.
-- 
+
 ## Tecnologías utilizadas
 - Python: lenguaje utilizado para el backend.
 - Flask: framework utilizado para crear los endpoints y gestionar las peticiones HTTP del frontend.
