@@ -1,7 +1,7 @@
 # ¿Cómo levantar el backend?
 - El backend se desarrolló en Python, utilizando tanto Flask como MySQL para gestionar la base de datos. Flask es quién nos permitió hacer los endpoint que utilizará el front para realizar las consultas mientras que MySQL almacena los datos.
 - Para poder levantar el backend de manera local será necesario tener instalados: **Git**, **Python**(se utilizó Visual Studio Code con la extensión de Pyton de Microsoft) y **MySQL server**.
-- 
+  
 ## Lista de pasos a seguir
 ### 1. Clonar el repositorio de GitHub desde *la terminal* del equipo y abrir el proyecto
 - Comando 1: *git clone <url del repo>* (clonamos el respositorio)
