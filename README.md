@@ -14,24 +14,16 @@
 - /backend
     - app.py
     - db.py
+    - requirements.txt
+    - /routes
     - README.md
       
 - /docs
     - Diagrama de relaciones
-    - Instructivo completo de cómo correr la aplicación de forma local
-    - Informe
+    - README.md
 
 - /database
     - 1_creación_tablas
     - 2_inserción_datos_prueba
+    - README.md
       
-## Informe:
-### o Fundamentar decisiones de implementación
-- Clave primaria de partido es solo id_partido
-- Uso de checks, uniques, not null y indexs
-- Verificación de tipos (enum) tanto en SQL como el el backend. La idea de repetirnos en el backend es poder detectar esos errores lo antes posible y así poder evitar establecer una conexión que no será exitosa con la base de datos.
-### o Mejoras implementadas o consideradas en el modelo de datos
-- Jueces
-- Relación usuarios/partidos
-### o Bitácora del trabajo realizado
-### o Bibliografía
