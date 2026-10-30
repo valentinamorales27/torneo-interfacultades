@@ -26,4 +26,5 @@
     - 1_creación_tablas
     - 2_inserción_datos_prueba
     - README.md
-      
+## Informe
+- Link: https://docs.google.com/document/d/1PMKXOzMFpRRi7M1uX4RFv3x5RNaAImA2qB_9ZldLa60/edit?usp=sharing
