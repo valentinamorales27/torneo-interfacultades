@@ -14,8 +14,8 @@
 - Comando 2: ```.\.venv\Scripts\Activate.ps1``` (luego de ejecutarlo debería de aparecer un (.venv) frente a la línea de la terminal)
 ## 4. Instalar las dependencias
 - Comando: *python -m pip install -r requirements.txt* (instala las bibliotecas necesarias para poder correr el backend.
-## 5. Crear la basse de datos
-- Para poder continuar debe de ir a la carpeta de *database* del GitHub y seguir los pasos del README.md para poder crear e insertar los datos de prueba en la base de datos.
+## 5. Crear la base de datos
+- Para poder continuar ya debe de tener creada la BD de forma local, si no lo ha hecho aún debe de ir a la carpeta de *database* de este remo y seguir los pasos del README.md para poder crear e insertar los datos de prueba en la base de datos. Una vez creada puede seguir con el paso siguiente.
 ## 6. Configurar la conexión con SQL
 - Dentro de la carpeta del *backend* en la que usted está parado en VSCode puede ver el dile db.py. Este archivo se encarga de las consiguraciones de conexión con SQL, para poder utilizarlo usted debe de configurar el usuario, la contraseña y el nombre de la base de datos. Estos valores deben coincidir con la instalación local de MySQL del paso 5 (cuando creo la BD).
 - Para checkear que la conexión quedó establecida use el comando *python db.py*, si funciona debería de ver en la consola un mensaje indicando lo mismo.
