@@ -1,23 +1,28 @@
-from flask import Blueprint, jsonify, request
-#Blueprint lo usamos porque esto permite que Flask
-#pueda reconocer las rutas desde archivos diferentes al app
-from db import obtener_conexion
+
+from flask import Blueprint, request, jsonify
 import mysql.connector
-from datetime import date
+from db import obtener_conexion
 
-equipos_bp = Blueprint("equipos", __name__)
+#este archivo se encarga de gestionar los equipos del torneo
 
-#>>> ABM DE EQUIPOS
-#Alta de equipos:
-@equipos_bp.route("/equipos", methods=["POST"])
-def crear_equipo():
+equipos_bp = Blueprint("equipos", __name__, url_prefix="/equipos")
 
-    datos = request.get_json(silent=True)
 
-    if not datos:
-        return jsonify({"error": "Se deben enviar los datos del equipo"}), 400
+#verificamos que los IDs sean números positivos
+def validar_id(valor):
 
-    campos = [
+    try:
+        valor = int(valor)
+        return valor > 0
+
+    except (ValueError, TypeError):
+        return False
+
+
+#verificamos que se hayan enviado los datos necesarios para crear un equipo
+def validar_equipo(datos):
+
+    campos_obligatorios = [
         "nombre",
         "id_torneo",
         "id_facultad",
@@ -25,98 +30,245 @@ def crear_equipo():
         "numero_camiseta_capitan"
     ]
 
-    for campo in campos:
+    for campo in campos_obligatorios:
         if campo not in datos or datos[campo] is None:
-            return jsonify({"error": f"Falta el campo {campo}"}), 400
+            return f"Falta el campo obligatorio: {campo}"
 
     if not str(datos["nombre"]).strip():
-        return jsonify({"error": "El nombre del equipo es obligatorio"}), 400
+        return "El nombre del equipo no puede estar vacío"
 
-    try:
-        id_torneo = int(datos["id_torneo"])
-        id_facultad = int(datos["id_facultad"])
-        numero_camiseta = int(datos["numero_camiseta_capitan"])
+    #comprobamos que los IDs sean positivos
+    if not validar_id(datos["id_torneo"]):
+        return "El id_torneo debe ser un número positivo"
 
-        if id_torneo <= 0 or id_facultad <= 0 or numero_camiseta <= 0:
-            return jsonify({"error": "Los IDs y el número de camiseta deben ser positivos"}), 400
+    if not validar_id(datos["id_facultad"]):
+        return "El id_facultad debe ser un número positivo"
 
-    except (ValueError, TypeError):
-        return jsonify({"error": "Los IDs y el número de camiseta deben ser números enteros"}), 400
+    #el número de camiseta debe ser un entero positivo
+    if not validar_id(datos["numero_camiseta_capitan"]):
+        return "El número de camiseta debe ser positivo"
 
-    ci_capitan = str(datos["ci_capitan"]).strip()
+    if not str(datos["ci_capitan"]).isdigit() or len(str(datos["ci_capitan"])) > 8:
+        return "La CI del capitán debe contener solamente números y tener hasta 8 dígitos"
 
-    if not ci_capitan:
-        return jsonify({"error": "La CI del capitán es obligatoria"}), 400
+    return None
+
+
+#obtenemos todos los equipos registrados
+@equipos_bp.route("", methods=["GET"])
+def listar_equipos():
 
     conexion = None
     cursor = None
 
     try:
         conexion = obtener_conexion()
-        cursor = conexion.cursor()
+        cursor = conexion.cursor(dictionary=True)
 
-        #checkeamos que el torneo exista (esté en la tabla de torneos)
-        #y que su estado sea inscripción porque sino no se puede realizar
-        cursor.execute(
-            "SELECT estado FROM torneo WHERE id_torneo = %s",
-            (id_torneo,)
-        )
-        torneo = cursor.fetchone() #devuelve una tupla de un solo elemento que tiene la columna seleccionada
+        #consultamos los equipos junto con el nombre del torneo y de la facultad
+        sql = """
+            SELECT
+                e.id_equipo,
+                e.nombre,
+                e.id_torneo,
+                t.nombre AS torneo,
+                e.id_facultad,
+                f.nombre AS facultad,
+                e.ci_capitan,
+                j.nombre AS nombre_capitan,
+                j.apellido AS apellido_capitan
+            FROM equipo e
+            JOIN torneo t ON e.id_torneo = t.id_torneo
+            JOIN facultad f ON e.id_facultad = f.id_facultad
+            JOIN jugador j ON e.ci_capitan = j.ci
+            ORDER BY e.nombre
+        """
 
-        if torneo is None:
-            return jsonify({"error": "No existe ese torneo"}), 404
+        cursor.execute(sql)
+        equipos = cursor.fetchall()
 
-        if torneo[0] != "inscripción":
-            return jsonify({"error": "Solo se pueden crear equipos durante la inscripción"}), 400
+        return jsonify(equipos), 200
 
-        #acá verificamos que el capitán exista dentro de los jugadores y
-        #que efectivamente vaya a esa facultad
+    except mysql.connector.Error as error:
+        return jsonify({
+            "error": "Error al obtener los equipos",
+            "detalle": str(error)
+        }), 500
+
+    finally:
+        if cursor:
+            cursor.close()
+
+        if conexion:
+            conexion.close()
+
+
+#obtenemos los datos de un equipo específico
+@equipos_bp.route("/<int:id_equipo>", methods=["GET"])
+def buscar_equipo(id_equipo):
+
+    conexion = None
+    cursor = None
+
+    try:
+        conexion = obtener_conexion()
+        cursor = conexion.cursor(dictionary=True)
+
+        sql = """
+            SELECT
+                e.id_equipo,
+                e.nombre,
+                e.id_torneo,
+                t.nombre AS torneo,
+                t.estado AS estado_torneo,
+                e.id_facultad,
+                f.nombre AS facultad,
+                e.ci_capitan,
+                j.nombre AS nombre_capitan,
+                j.apellido AS apellido_capitan
+            FROM equipo e
+            JOIN torneo t ON e.id_torneo = t.id_torneo
+            JOIN facultad f ON e.id_facultad = f.id_facultad
+            JOIN jugador j ON e.ci_capitan = j.ci
+            WHERE e.id_equipo = %s
+        """
+
+        cursor.execute(sql, (id_equipo,))
+        equipo = cursor.fetchone()
+
+        if equipo is None:
+            return jsonify({
+                "error": "No se encontró un equipo con ese ID"
+            }), 404
+
+        return jsonify(equipo), 200
+
+    except mysql.connector.Error as error:
+        return jsonify({
+            "error": "Error al buscar el equipo",
+            "detalle": str(error)
+        }), 500
+
+    finally:
+        if cursor:
+            cursor.close()
+
+        if conexion:
+            conexion.close()
+
+
+#creamos un nuevo equipo y agregamos automáticamente a su capitán al plantel
+@equipos_bp.route("", methods=["POST"])
+def crear_equipo():
+
+    datos = request.get_json(silent=True)
+
+    if not datos:
+        return jsonify({
+            "error": "Se debe enviar un JSON válido"
+        }), 400
+
+    #verificamos que los datos recibidos sean correctos
+    error_validacion = validar_equipo(datos)
+
+    if error_validacion:
+        return jsonify({
+            "error": error_validacion
+        }), 400
+
+    conexion = None
+    cursor = None
+
+    try:
+        conexion = obtener_conexion()
+        cursor = conexion.cursor(dictionary=True)
+
+        #verificamos que el torneo exista y que todavía esté en inscripción
         cursor.execute(
             """
-            SELECT ci
-            FROM jugador
-            WHERE ci = %s AND id_facultad = %s
+            SELECT estado
+            FROM torneo
+            WHERE id_torneo = %s
             """,
-            (ci_capitan, id_facultad)
+            (datos["id_torneo"],)
         )
+
+        torneo = cursor.fetchone()
+
+        if torneo is None:
+            return jsonify({
+                "error": "No existe un torneo con ese ID"
+            }), 404
+
+        if torneo["estado"] != "inscripción":
+            return jsonify({
+                "error": "Solo se pueden crear equipos durante la inscripción"
+            }), 400
+
+        #verificamos que el capitán exista y que pertenezca a la facultad del equipo
+        cursor.execute(
+            """
+            SELECT ci, id_facultad
+            FROM jugador
+            WHERE ci = %s
+            """,
+            (datos["ci_capitan"],)
+        )
+
         capitan = cursor.fetchone()
 
         if capitan is None:
             return jsonify({
-                "error": "El capitán no existe o no pertenece a esa facultad"
+                "error": "No existe un jugador con la CI indicada para el capitán"
+            }), 404
+
+        if capitan["id_facultad"] != int(datos["id_facultad"]):
+            return jsonify({
+                "error": "El capitán debe pertenecer a la misma facultad que el equipo"
             }), 400
 
-        #luego de todas las verificaciones lo creamos
-        consulta = """
-            INSERT INTO equipo (nombre, id_torneo, id_facultad, ci_capitan)
+        #creamos el equipo
+        cursor.execute(
+            """
+            INSERT INTO equipo (
+                nombre,
+                id_torneo,
+                id_facultad,
+                ci_capitan
+            )
             VALUES (%s, %s, %s, %s)
-        """
-
-        valores = (
-            datos["nombre"].strip(),
-            id_torneo,
-            id_facultad,
-            ci_capitan
+            """,
+            (
+                datos["nombre"].strip(),
+                int(datos["id_torneo"]),
+                int(datos["id_facultad"]),
+                datos["ci_capitan"]
+            )
         )
 
-        cursor.execute(consulta, valores)
-
-        #cursor.lastrowid devuelve el último id que se genero automáticamente
-        #porque en la bd pusimos auto increment así puede agregar al capitán 
-        #como el primer jugador del plantel
+        #obtenemos el ID generado para el nuevo equipo
         id_equipo = cursor.lastrowid
 
-        consulta_plantel = """
-            INSERT INTO equipo_jugador_torneo
-            (id_equipo, ci_jugador, id_torneo, numero_camiseta)
-            VALUES (%s, %s, %s, %s)
-        """
-
+        #agregamos al capitán como integrante del plantel
         cursor.execute(
-            consulta_plantel,
-            (id_equipo, ci_capitan, id_torneo, numero_camiseta)
+            """
+            INSERT INTO equipo_jugador_torneo (
+                id_equipo,
+                ci_jugador,
+                id_torneo,
+                numero_camiseta
+            )
+            VALUES (%s, %s, %s, %s)
+            """,
+            (
+                id_equipo,
+                datos["ci_capitan"],
+                int(datos["id_torneo"]),
+                int(datos["numero_camiseta_capitan"])
+            )
         )
 
+        #confirmamos las dos inserciones juntas
         conexion.commit()
 
         return jsonify({
@@ -124,64 +276,93 @@ def crear_equipo():
             "id_equipo": id_equipo
         }), 201
 
-    except mysql.connector.IntegrityError:
+    except mysql.connector.IntegrityError as error:
+
+        #si falla alguna inserción deshacemos también la anterior
+        if conexion:
+            conexion.rollback()
+
+        #1062 significa que se intentó ingresar un valor duplicado
+        if error.errno == 1062:
+            return jsonify({
+                "error": "El capitán ya pertenece a un equipo de este torneo o el número de camiseta ya está utilizado"
+            }), 409
+
+        #1452 significa que alguna clave foránea no existe
+        if error.errno == 1452:
+            return jsonify({
+                "error": "Alguno de los datos indicados no existe en la base de datos"
+            }), 400
+
+        return jsonify({
+            "error": "Error de integridad de la base de datos",
+            "detalle": str(error)
+        }), 400
+
+    except mysql.connector.Error as error:
+
         if conexion:
             conexion.rollback()
 
         return jsonify({
-            "error": "No se pudo crear el equipo. Verificá que el capitán no esté inscripto en otro equipo del mismo torneo"
-        }), 409
-
-    except mysql.connector.Error:
-        if conexion:
-            conexion.rollback()
-
-        return jsonify({"error": "Ocurrió un error al crear el equipo"}), 500
+            "error": "Error al crear el equipo",
+            "detalle": str(error)
+        }), 500
 
     finally:
         if cursor:
             cursor.close()
+
         if conexion:
             conexion.close()
 
-#Modificar un equipo:
-@equipos_bp.route("/equipos/<int:id_equipo>", methods=["PUT"])
+
+#modificamos el nombre de un equipo
+@equipos_bp.route("/<int:id_equipo>", methods=["PUT"])
 def modificar_equipo(id_equipo):
 
     datos = request.get_json(silent=True)
 
-    if not datos or "nombre" not in datos or datos["nombre"] is None:
-        return jsonify({"error": "Se debe enviar el nombre del equipo"}), 400
+    if not datos:
+        return jsonify({
+            "error": "Se debe enviar un JSON válido"
+        }), 400
 
-    if not str(datos["nombre"]).strip():
-        return jsonify({"error": "El nombre del equipo no puede estar vacío"}), 400
+    if "nombre" not in datos or not str(datos["nombre"]).strip():
+        return jsonify({
+            "error": "Se debe indicar un nombre válido para el equipo"
+        }), 400
 
     conexion = None
     cursor = None
 
     try:
         conexion = obtener_conexion()
-        cursor = conexion.cursor()
+        cursor = conexion.cursor(dictionary=True)
 
-        #vemos si el equipo existe primero
+        #verificamos que el equipo exista y obtenemos el estado de su torneo
         cursor.execute(
-            "SELECT id_torneo FROM equipo WHERE id_equipo = %s",
+            """
+            SELECT t.estado
+            FROM equipo e
+            JOIN torneo t ON e.id_torneo = t.id_torneo
+            WHERE e.id_equipo = %s
+            """,
             (id_equipo,)
         )
+
         equipo = cursor.fetchone()
 
         if equipo is None:
-            return jsonify({"error": "No se encontró el equipo"}), 404
-
-        #verificamos que el torneo este en estado inscripción porque sino no podemos ejecutarla
-        cursor.execute(
-            "SELECT estado FROM torneo WHERE id_torneo = %s",
-            (equipo[0],)
-        )
-        torneo = cursor.fetchone()
-
-        if torneo[0] != "inscripción":
-            return jsonify({"error": "Solo se pueden modificar equipos durante la inscripción"}), 400
+            return jsonify({
+                "error": "No se encontró un equipo con ese ID"
+            }), 404
+        #VERIFICACIÓN DEL ESTADO DEL TORNEO
+        #los equipos solo se pueden modificar durante la inscripción
+        if equipo["estado"] != "inscripción":
+            return jsonify({
+                "error": "Solo se pueden modificar equipos durante la inscripción"
+            }), 400
 
         cursor.execute(
             """
@@ -194,26 +375,30 @@ def modificar_equipo(id_equipo):
 
         conexion.commit()
 
-        return jsonify({"mensaje": "Equipo modificado correctamente"}), 200
+        return jsonify({
+            "mensaje": "Equipo modificado correctamente"
+        }), 200
 
-    except mysql.connector.IntegrityError:
+    except mysql.connector.Error as error:
+
         if conexion:
             conexion.rollback()
-        return jsonify({"error": "No se pudo modificar el equipo"}), 409
 
-    except mysql.connector.Error:
-        if conexion:
-            conexion.rollback()
-        return jsonify({"error": "Ocurrió un error al modificar el equipo"}), 500
+        return jsonify({
+            "error": "Error al modificar el equipo",
+            "detalle": str(error)
+        }), 500
 
     finally:
         if cursor:
             cursor.close()
+
         if conexion:
             conexion.close()
 
-#Baja de un equipo
-@equipos_bp.route("/equipos/<int:id_equipo>", methods=["DELETE"])
+
+#eliminamos un equipo y sus integrantes del plantel
+@equipos_bp.route("/<int:id_equipo>", methods=["DELETE"])
 def eliminar_equipo(id_equipo):
 
     conexion = None
@@ -221,150 +406,84 @@ def eliminar_equipo(id_equipo):
 
     try:
         conexion = obtener_conexion()
-        cursor = conexion.cursor()
+        cursor = conexion.cursor(dictionary=True)
 
-        #primero vemos si el equipo equiste.
-        #si existe obtenemos el id del torneo
+        #verificamos que el equipo exista y que su torneo esté en inscripción
         cursor.execute(
-            "SELECT id_torneo FROM equipo WHERE id_equipo = %s",
+            """
+            SELECT t.estado
+            FROM equipo e
+            JOIN torneo t ON e.id_torneo = t.id_torneo
+            WHERE e.id_equipo = %s
+            """,
             (id_equipo,)
         )
+
         equipo = cursor.fetchone()
 
         if equipo is None:
-            return jsonify({"error": "No se encontró el equipo"}), 404
+            return jsonify({
+                "error": "No se encontró un equipo con ese ID"
+            }), 404
 
-        #vemos si está en estado de inscripción
+        if equipo["estado"] != "inscripción":
+            return jsonify({
+                "error": "Solo se pueden eliminar equipos durante la inscripción"
+            }), 400
+
+        #primero eliminamos los integrantes porque dependen del equipo
         cursor.execute(
-            "SELECT estado FROM torneo WHERE id_torneo = %s",
-            (equipo[0],)
-        )
-        torneo = cursor.fetchone()
-
-        if torneo[0] != "inscripción":
-            return jsonify({"error": "Solo se pueden eliminar equipos durante la inscripción"}), 400
-
-        #eliminamos sus jugadores del plantel primero
-        cursor.execute(
-            "DELETE FROM equipo_jugador_torneo WHERE id_equipo = %s",
+            """
+            DELETE FROM equipo_jugador_torneo
+            WHERE id_equipo = %s
+            """,
             (id_equipo,)
         )
 
-        #finalmente eliminamos el equipo
+        #después eliminamos el equipo
         cursor.execute(
-            "DELETE FROM equipo WHERE id_equipo = %s",
+            """
+            DELETE FROM equipo
+            WHERE id_equipo = %s
+            """,
             (id_equipo,)
         )
 
         conexion.commit()
 
-        return jsonify({"mensaje": "Equipo eliminado correctamente"}), 200
+        return jsonify({
+            "mensaje": "Equipo eliminado correctamente"
+        }), 200
 
-    except mysql.connector.IntegrityError:
+    except mysql.connector.IntegrityError as error:
+
+        if conexion:
+            conexion.rollback()
+
+        #1451 significa que otra tabla referencia al equipo mediante una clave foránea
+        if error.errno == 1451:
+            return jsonify({
+                "error": "No se puede eliminar el equipo porque está relacionado con partidos o planillas"
+            }), 409
+
+        return jsonify({
+            "error": "Error de integridad de la base de datos",
+            "detalle": str(error)
+        }), 400
+
+    except mysql.connector.Error as error:
+
         if conexion:
             conexion.rollback()
 
         return jsonify({
-            "error": "No se puede eliminar el equipo porque tiene partidos u otros registros asociados"
-        }), 409
-
-    except mysql.connector.Error:
-        if conexion:
-            conexion.rollback()
-
-        return jsonify({"error": "Ocurrió un error al eliminar el equipo"}), 500
+            "error": "Error al eliminar el equipo",
+            "detalle": str(error)
+        }), 500
 
     finally:
         if cursor:
             cursor.close()
-        if conexion:
-            conexion.close()
 
-#>>>Consula de todos los equipos
-@equipos_bp.route("/equipos", methods=["GET"])
-def obtener_equipos():
-
-    conexion = None
-    cursor = None
-
-    try:
-        conexion = obtener_conexion()
-        cursor = conexion.cursor(dictionary=True)
-
-        consulta = """
-            SELECT
-                e.id_equipo,
-                e.nombre,
-                e.id_torneo,
-                t.nombre AS nombre_torneo,
-                e.id_facultad,
-                f.nombre AS nombre_facultad,
-                e.ci_capitan,
-                j.nombre AS nombre_capitan,
-                j.apellido AS apellido_capitan
-            FROM equipo e
-            JOIN torneo t ON e.id_torneo = t.id_torneo
-            JOIN facultad f ON e.id_facultad = f.id_facultad
-            JOIN jugador j ON e.ci_capitan = j.ci
-            ORDER BY e.id_equipo
-        """
-
-        cursor.execute(consulta)
-        equipos = cursor.fetchall()
-
-        return jsonify(equipos), 200
-
-    except mysql.connector.Error:
-        return jsonify({"error": "No se pudieron obtener los equipos"}), 500
-
-    finally:
-        if cursor:
-            cursor.close()
-        if conexion:
-            conexion.close()
-
-#>>>Consultar equipo por id
-@equipos_bp.route("/equipos/<int:id_equipo>", methods=["GET"])
-def obtener_equipo(id_equipo):
-
-    conexion = None
-    cursor = None
-
-    try:
-        conexion = obtener_conexion()
-        cursor = conexion.cursor(dictionary=True)
-
-        consulta = """
-            SELECT
-                e.id_equipo,
-                e.nombre,
-                e.id_torneo,
-                t.nombre AS nombre_torneo,
-                e.id_facultad,
-                f.nombre AS nombre_facultad,
-                e.ci_capitan,
-                j.nombre AS nombre_capitan,
-                j.apellido AS apellido_capitan
-            FROM equipo e
-            JOIN torneo t ON e.id_torneo = t.id_torneo
-            JOIN facultad f ON e.id_facultad = f.id_facultad
-            JOIN jugador j ON e.ci_capitan = j.ci
-            WHERE e.id_equipo = %s
-        """
-
-        cursor.execute(consulta, (id_equipo,))
-        equipo = cursor.fetchone()
-
-        if equipo is None:
-            return jsonify({"error": "No se encontró el equipo"}), 404
-
-        return jsonify(equipo), 200
-
-    except mysql.connector.Error:
-        return jsonify({"error": "No se pudo obtener el equipo"}), 500
-
-    finally:
-        if cursor:
-            cursor.close()
         if conexion:
             conexion.close()

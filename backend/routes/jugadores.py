@@ -1,265 +1,227 @@
-from flask import Blueprint, jsonify, request
-#Blueprint lo usamos porque esto permite que Flask
-#pueda reconocer las rutas desde archivos diferentes al app
-from db import obtener_conexion
+
+from flask import Blueprint, request, jsonify
+#blueprint permite que app reconozca archivos de otras rutas
 import mysql.connector
 from datetime import date
+from db import obtener_conexion
 
-jugadores_bp = Blueprint("jugadores", __name__)
+#gestión de jugadores
 
-#>>> ABM DE JUGADORES
-#Alta de un jugador:
-@jugadores_bp.route("/jugadores", methods=["POST"])
-def crear_jugador():
-    datos = request.get_json() #los datos del que este usando la app
-    if not datos: return jsonify({"error": "Se deben enviar los datos del jugador"}), 400 #si no hay datos aviso
-    #campos que debería de tener la solicitud post
-    campos = [
-        "ci",
+jugadores_bp = Blueprint("jugadores", __name__, url_prefix="/jugadores")
+
+
+#verificamos que los datos del jugador sean correctos antes de guardarlos
+def validar_jugador(datos):
+
+    campos_obligatorios = [
         "nombre",
         "apellido",
         "email",
         "fecha_nacimiento",
-        "id_facultad",
-        "tipo"
+        "tipo",
+        "id_facultad"
     ]
-    #recorremos cada campo y vemos si esta en la solicitud post
-    for campo in campos:
+
+    #comprobamos que se hayan enviado todos los campos necesarios
+    for campo in campos_obligatorios:
         if campo not in datos or datos[campo] is None:
-            return jsonify({"error": f"Falta el campo {campo}"}), 400 #si no está aviso
-    
-    #validamos los datos
-    #checkeamos que los valores no sean vacíos o no contengan elementos clave (ej. el @ del mail)
-    if not str(datos["ci"]).strip():
-        return jsonify({"error": "La CI no puede estar vacía"}), 400
+            return f"Falta el campo obligatorio: {campo}"
 
-    if not str(datos["nombre"]).strip() or not str(datos["apellido"]).strip():
-        return jsonify({"error": "El nombre y el apellido son obligatorios"}), 400
+    if not str(datos["nombre"]).strip():
+        return "El nombre no puede estar vacío"
 
-    if "@" not in str(datos["email"]):
-        return jsonify({"error": "El email no es válido"}), 400
+    if not str(datos["apellido"]).strip():
+        return "El apellido no puede estar vacío"
 
+    #verificamos que el email tenga un formato básico válido
+    email = str(datos["email"]).strip()
+
+    if "@" not in email or "." not in email.split("@")[-1]:
+        return "El email no es válido"
+
+    #el tipo debe coincidir con alguno de los valores permitidos en la tabla
     tipos_validos = ["grado", "posgrado", "docente", "funcionario"]
 
     if datos["tipo"] not in tipos_validos:
-        return jsonify({"error": "El tipo de jugador no es válido"}), 400
+        return "El tipo de jugador no es válido"
 
-    try: #probamos pasar la fecha y el id facultad a los formatos que deberían de tener
-         #para ver si son válidos y verificamos que la fecha de nacimiento sea coherente
-        fecha = date.fromisoformat(datos["fecha_nacimiento"])
-
-        if fecha >= date.today():
-            return jsonify({"error": "La fecha de nacimiento debe ser anterior a hoy"}), 400
-
-        id_facultad = int(datos["id_facultad"])
-
-    except (ValueError, TypeError): #notificamos los errores
-        return jsonify({"error": "La fecha o el ID de facultad no son válidos"}), 400
-
-    #establecemos la conexión
-    conexion = obtener_conexion()
-    cursor = conexion.cursor()
-
-    try: #generamos la consulta SQL
-        consulta = """
-            INSERT INTO jugador
-            (ci, nombre, apellido, email, fecha_nacimiento, id_facultad, tipo)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-        """
-        #los signos de %s indican dónde van los valores que se reciben
-        #preparamos los datos obtenidos por el usuario
-        valores = (
-            datos["ci"],
-            datos["nombre"],
-            datos["apellido"],
-            datos["email"],
-            datos["fecha_nacimiento"],
-            id_facultad,
-            datos["tipo"]
-        )
-        #ejecutamos la consulta junto a los datos ingresados
-        cursor.execute(consulta, valores)
-        conexion.commit() #"guardamos" cambios
-
-        return jsonify({"mensaje": "Jugador creado correctamente"}), 201 #comuncamos si fue exitosa o no
-    #si da algún error el try lo mostramos
-    except mysql.connector.IntegrityError:#restricción de integridad
-        conexion.rollback()#cancela los cambios de esta operación
-        return jsonify({
-            "error": "La CI o el email ya existen, o la facultad no es válida"
-        }), 409
-
-    except mysql.connector.Error:
-        conexion.rollback()
-        return jsonify({"error": "No se pudo crear el jugador"}), 500
-    #cerramos la conexión
-    finally:
-        cursor.close()
-        conexion.close()
-
-#Modificar jugador (se identifica con su ci)
-@jugadores_bp.route("/jugadores/<ci>", methods=["PUT"])
-def modificar_jugador(ci): 
-    #mismos controles/verificaciones que el POST
-    datos = request.get_json(silent=True)#significa que si da algún error, devuelve none, entonces los podemos tratar acá
-
-    if not datos:
-        return jsonify({"error": "Se deben enviar los datos del jugador"}), 400
-
-    campos = [
-        "nombre",
-        "apellido",
-        "email",
-        "fecha_nacimiento",
-        "id_facultad",
-        "tipo"
-    ]
-
-    for campo in campos:
-        if campo not in datos or datos[campo] is None:
-            return jsonify({"error": f"Falta el campo {campo}"}), 400
-
-    if not str(datos["nombre"]).strip() or not str(datos["apellido"]).strip():
-        return jsonify({"error": "El nombre y el apellido son obligatorios"}), 400
-
-    if "@" not in str(datos["email"]):
-        return jsonify({"error": "El email no es válido"}), 400
-
-    tipos_validos = ["grado", "posgrado", "docente", "funcionario"]
-
-    if datos["tipo"] not in tipos_validos:
-        return jsonify({"error": "El tipo de jugador no es válido"}), 400
-
+    #comprobamos que la fecha tenga el formato correcto y sea antes de hoy
     try:
-        fecha = date.fromisoformat(datos["fecha_nacimiento"])
-
-        if fecha >= date.today():
-            return jsonify({"error": "La fecha de nacimiento debe ser anterior a hoy"}), 400
-
-        id_facultad = int(datos["id_facultad"])
+        fecha_nacimiento = date.fromisoformat(datos["fecha_nacimiento"])
 
     except (ValueError, TypeError):
-        return jsonify({"error": "La fecha o el ID de facultad no son válidos"}), 400
+        return "La fecha de nacimiento debe tener formato YYYY-MM-DD"
 
-    conexion = obtener_conexion()
-    cursor = conexion.cursor()
+    if fecha_nacimiento >= date.today():
+        return "La fecha de nacimiento debe ser anterior a hoy"
 
+    #verificamos que el id de la facultad sea un número positivo
     try:
-        #primero vemos si existe
-        cursor.execute(
-            "SELECT ci FROM jugador WHERE ci = %s",
-            (ci,)
-        )
+        id_facultad = int(datos["id_facultad"])
 
-        jugador = cursor.fetchone()
-        if jugador is None:
-            return jsonify({"error": "No se encontró el jugador"}), 404
-        
-        consulta = """
-            UPDATE jugador
-            SET nombre = %s,
-                apellido = %s,
-                email = %s,
-                fecha_nacimiento = %s,
-                id_facultad = %s,
-                tipo = %s
-            WHERE ci = %s
-        """
+        if id_facultad <= 0:
+            return "El id_facultad debe ser positivo"
 
-        valores = (
-            datos["nombre"],
-            datos["apellido"],
-            datos["email"],
-            datos["fecha_nacimiento"],
-            id_facultad,
-            datos["tipo"],
-            ci
-        )
+    except (ValueError, TypeError):
+        return "El id_facultad debe ser un número entero"
 
-        cursor.execute(consulta, valores)
-        conexion.commit()
+    return None
 
-        return jsonify({"mensaje": "Jugador modificado correctamente"}), 200
 
-    except mysql.connector.IntegrityError:
-        conexion.rollback()
-        return jsonify({
-            "error": "El email ya existe o la facultad no es válida"
-        }), 409
+#la ci debe contener solo números y como max 8
+def validar_ci(ci):
 
-    except mysql.connector.Error:
-        conexion.rollback()
-        return jsonify({"error": "No se pudo modificar el jugador"}), 500
+    if not ci:
+        return False
 
-    finally:
-        cursor.close()
-        conexion.close()
+    ci = str(ci)
+    return ci.isdigit() and len(ci) <= 8
 
-#Baja de un jugador (se identifica con el id)
-@jugadores_bp.route("/jugadores/<ci>", methods=["DELETE"])
-def eliminar_jugador(ci):
-    conexion = obtener_conexion()
-    cursor = conexion.cursor()
-    #en esta no tenemos campos ingresados por el usuario además del id
-    try:
-        cursor.execute(
-            "DELETE FROM jugador WHERE ci = %s",
-            (ci,)
-        )
 
-        if cursor.rowcount == 0:
-            return jsonify({"error": "No se encontró el jugador"}), 404
-
-        conexion.commit()
-
-        return jsonify({"mensaje": "Jugador eliminado correctamente"}), 200
-
-    except mysql.connector.IntegrityError:
-        conexion.rollback()
-        return jsonify({
-            "error": "No se puede eliminar el jugador porque tiene registros asociados"
-        }), 409
-
-    except mysql.connector.Error:
-        conexion.rollback()
-        return jsonify({"error": "No se pudo eliminar el jugador"}), 500
-
-    finally:
-        cursor.close()
-        conexion.close()
-
-#>>>Consultar todos los jugadores
-@jugadores_bp.route("/jugadores", methods=["GET"])
-def obtener_jugadores():
-    conexion = obtener_conexion()
-    cursor = conexion.cursor(dictionary=True)
-
-    try:
-        cursor.execute("SELECT * FROM jugador")
-        jugadores = cursor.fetchall()
-
-        return jsonify(jugadores), 200
-
-    except mysql.connector.Error:
-        return jsonify({"error": "No se pudieron obtener los jugadores"}), 500
-
-    finally:
-        cursor.close()
-        conexion.close()
-
-#>>>Consultar jugador por ci
-@jugadores_bp.route("/jugadores/<ci>", methods=["GET"])
-def obtener_jugador(ci):
+#obtenemos todos los jugadores registrados en la base de datos
+@jugadores_bp.route("", methods=["GET"])
+def listar_jugadores():
 
     conexion = None
     cursor = None
 
     try:
         conexion = obtener_conexion()
-        cursor = conexion.cursor(dictionary=True)#convierte el resultado en un diccionario para poder devolverlo con jsonify()
+        #usamos dictionary=True para obtener los resultados como diccionarios para poder acceder más fácil
+        cursor = conexion.cursor(dictionary=True)
 
-        consulta = """
+        #consultamos los jugadores junto con el nombre de su facultad
+        sql = """
             SELECT
+                j.ci,
+                j.nombre,
+                j.apellido,
+                j.email,
+                j.fecha_nacimiento,
+                j.tipo,
+                j.id_facultad,
+                f.nombre AS facultad
+            FROM jugador j
+            JOIN facultad f ON j.id_facultad = f.id_facultad
+            ORDER BY j.apellido, j.nombre
+        """
+
+        cursor.execute(sql)
+        jugadores = cursor.fetchall()
+        return jsonify(jugadores), 200
+
+    except mysql.connector.Error as error:
+        return jsonify({
+            "error": "Error al obtener los jugadores",
+            "detalle": str(error)
+        }), 500
+
+    finally:
+        #cerramos el cursor y la conexión para liberar recursos
+        if cursor:
+            cursor.close()
+
+        if conexion:
+            conexion.close()
+
+
+#buscamos un jugador utilizando su CI
+@jugadores_bp.route("/<ci>", methods=["GET"])
+def buscar_jugador(ci):
+
+    if not validar_ci(ci):
+        return jsonify({
+            "error": "La CI debe contener solamente números y tener hasta 8 dígitos"
+        }), 400
+
+    conexion = None
+    cursor = None
+
+    try:
+        conexion = obtener_conexion()
+        cursor = conexion.cursor(dictionary=True)
+
+        sql = """
+            SELECT
+                j.ci,
+                j.nombre,
+                j.apellido,
+                j.email,
+                j.fecha_nacimiento,
+                j.tipo,
+                j.id_facultad,
+                f.nombre AS facultad
+            FROM jugador j
+            JOIN facultad f ON j.id_facultad = f.id_facultad
+            WHERE j.ci = %s
+        """
+
+        #el %s se reemplaza por la CI de forma segura
+        cursor.execute(sql, (ci,))
+        jugador = cursor.fetchone()
+
+        #si no encontramos al jugador devolvemos un error
+        if jugador is None:
+            return jsonify({
+                "error": "No se encontró un jugador con esa CI"
+            }), 404
+
+        return jsonify(jugador), 200
+
+    except mysql.connector.Error as error:
+        return jsonify({
+            "error": "Error al buscar el jugador",
+            "detalle": str(error)
+        }), 500
+
+    finally:
+        if cursor:
+            cursor.close()
+
+        if conexion:
+            conexion.close()
+
+
+#registramos un nuevo jugador en la base de datos
+@jugadores_bp.route("", methods=["POST"])
+def crear_jugador():
+
+    #obtenemos los datos enviados desde el frontend
+    datos = request.get_json(silent=True)
+
+    if not datos:
+        return jsonify({
+            "error": "Se debe enviar un JSON válido"
+        }), 400
+
+    #la CI es obligatoria porque es la clave primaria de jugador
+    if "ci" not in datos:
+        return jsonify({
+            "error": "Falta el campo obligatorio: ci"
+        }), 400
+
+    if not validar_ci(datos["ci"]):
+        return jsonify({
+            "error": "La CI debe contener solamente números y tener hasta 8 dígitos"
+        }), 400
+
+    #validamos el resto de los datos del jugador
+    error_validacion = validar_jugador(datos)
+
+    if error_validacion:
+        return jsonify({
+            "error": error_validacion
+        }), 400
+
+    conexion = None
+    cursor = None
+
+    try:
+        conexion = obtener_conexion()
+        cursor = conexion.cursor()
+
+        sql = """
+            INSERT INTO jugador (
                 ci,
                 nombre,
                 apellido,
@@ -267,23 +229,253 @@ def obtener_jugador(ci):
                 fecha_nacimiento,
                 tipo,
                 id_facultad
-            FROM jugador
-            WHERE ci = %s
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
         """
 
-        cursor.execute(consulta, (ci,))
-        jugador = cursor.fetchone()
+        valores = (
+            str(datos["ci"]),
+            datos["nombre"].strip(),
+            datos["apellido"].strip(),
+            datos["email"].strip(),
+            datos["fecha_nacimiento"],
+            datos["tipo"],
+            int(datos["id_facultad"])
+        )
 
-        if jugador is None:
-            return jsonify({"error": "No se encontró el jugador"}), 404
+        cursor.execute(sql, valores)
 
-        return jsonify(jugador), 200
+        #confirmamos que el jugador quede guardado
+        conexion.commit()
 
-    except mysql.connector.Error:
-        return jsonify({"error": "No se pudo obtener el jugador"}), 500
+        return jsonify({
+            "mensaje": "Jugador creado correctamente",
+            "ci": str(datos["ci"])
+        }), 201
+
+    except mysql.connector.IntegrityError as error:
+
+        #si ocurre un error deshacemos los cambios
+        if conexion:
+            conexion.rollback()
+
+        #1062 significa que se intentó ingresar un valor duplicado
+        if error.errno == 1062:
+            return jsonify({
+                "error": "Ya existe un jugador con esa CI o email"
+            }), 409
+
+        #1452 significa que la clave foránea indicada no existe
+        if error.errno == 1452:
+            return jsonify({
+                "error": "La facultad indicada no existe"
+            }), 400
+
+        return jsonify({
+            "error": "Error de integridad de la base de datos",
+            "detalle": str(error)
+        }), 400
+
+    except mysql.connector.Error as error:
+
+        if conexion:
+            conexion.rollback()
+
+        return jsonify({
+            "error": "Error al crear el jugador",
+            "detalle": str(error)
+        }), 500
 
     finally:
         if cursor:
             cursor.close()
+
+        if conexion:
+            conexion.close()
+
+
+#modificamos los datos de un jugador existente
+@jugadores_bp.route("/<ci>", methods=["PUT"])
+def modificar_jugador(ci):
+
+    if not validar_ci(ci):
+        return jsonify({
+            "error": "La CI debe contener solamente números y tener hasta 8 dígitos"
+        }), 400
+
+    datos = request.get_json(silent=True)
+
+    if not datos:
+        return jsonify({
+            "error": "Se debe enviar un JSON válido"
+        }), 400
+
+    error_validacion = validar_jugador(datos)
+
+    if error_validacion:
+        return jsonify({
+            "error": error_validacion
+        }), 400
+
+    conexion = None
+    cursor = None
+
+    try:
+        conexion = obtener_conexion()
+        cursor = conexion.cursor()
+
+        #primero verificamos que el jugador exista
+        cursor.execute(
+            "SELECT ci FROM jugador WHERE ci = %s",
+            (ci,)
+        )
+
+        jugador = cursor.fetchone()
+
+        if jugador is None:
+            return jsonify({
+                "error": "No se encontró un jugador con esa CI"
+            }), 404
+
+        #actualizamos los datos sin modificar la ci
+        sql = """
+            UPDATE jugador
+            SET
+                nombre = %s,
+                apellido = %s,
+                email = %s,
+                fecha_nacimiento = %s,
+                tipo = %s,
+                id_facultad = %s
+            WHERE ci = %s
+        """
+
+        valores = (
+            datos["nombre"].strip(),
+            datos["apellido"].strip(),
+            datos["email"].strip(),
+            datos["fecha_nacimiento"],
+            datos["tipo"],
+            int(datos["id_facultad"]),
+            ci
+        )
+
+        cursor.execute(sql, valores)
+        conexion.commit()
+
+        return jsonify({
+            "mensaje": "Jugador modificado correctamente"
+        }), 200
+
+    except mysql.connector.IntegrityError as error:
+
+        if conexion:
+            conexion.rollback()
+        #los números de errores los sacmamos de la página de sql
+        #1062 significa que el email ya pertenece a otro jugador
+        if error.errno == 1062:
+            return jsonify({
+                "error": "Ya existe otro jugador con ese email"
+            }), 409
+
+        #1452 significa que la facultad indicada no existe
+        if error.errno == 1452:
+            return jsonify({
+                "error": "La facultad indicada no existe"
+            }), 400
+
+        return jsonify({
+            "error": "Error de integridad de la base de datos",
+            "detalle": str(error)
+        }), 400
+
+    except mysql.connector.Error as error:
+
+        if conexion:
+            conexion.rollback()
+
+        return jsonify({
+            "error": "Error al modificar el jugador",
+            "detalle": str(error)
+        }), 500
+
+    finally:
+        if cursor:
+            cursor.close()
+
+        if conexion:
+            conexion.close()
+
+
+#eliminamos un jugador de la base de datos
+@jugadores_bp.route("/<ci>", methods=["DELETE"])
+def eliminar_jugador(ci):
+
+    if not validar_ci(ci):
+        return jsonify({
+            "error": "La CI debe contener solamente números y tener hasta 8 dígitos"
+        }), 400
+
+    conexion = None
+    cursor = None
+
+    try:
+        conexion = obtener_conexion()
+        cursor = conexion.cursor()
+
+        #verificamos que el jugador exista antes de eliminarlo
+        cursor.execute(
+            "SELECT ci FROM jugador WHERE ci = %s",
+            (ci,)
+        )
+
+        jugador = cursor.fetchone()
+
+        if jugador is None:
+            return jsonify({
+                "error": "No se encontró un jugador con esa CI"
+            }), 404
+
+        cursor.execute(
+            "DELETE FROM jugador WHERE ci = %s",
+            (ci,)
+        )
+
+        conexion.commit()
+
+        return jsonify({
+            "mensaje": "Jugador eliminado correctamente"
+        }), 200
+
+    except mysql.connector.IntegrityError as error:
+
+        if conexion:
+            conexion.rollback()
+
+        #1451 significa que otra tabla utiliza al jugador mediante una clave foránea
+        if error.errno == 1451:
+            return jsonify({
+                "error": "No se puede eliminar el jugador porque está relacionado con equipos, planillas o sanciones"
+            }), 409
+
+        return jsonify({
+            "error": "Error de integridad de la base de datos",
+            "detalle": str(error)
+        }), 400
+
+    except mysql.connector.Error as error:
+
+        if conexion:
+            conexion.rollback()
+
+        return jsonify({
+            "error": "Error al eliminar el jugador",
+            "detalle": str(error)
+        }), 500
+
+    finally:
+        if cursor:
+            cursor.close()
+
         if conexion:
             conexion.close()
