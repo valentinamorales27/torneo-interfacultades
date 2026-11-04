@@ -6,7 +6,7 @@ use torneo_interfacultades;
 
 create table login(
     correo varchar(50) primary key,
-    contraseña varchar(20) not null,
+    contraseña varchar(255) not null,
     rol enum('administrador', 'planillero') not null
 );
 
