@@ -2,6 +2,8 @@
 from flask import Blueprint, request, jsonify
 import mysql.connector
 from db import obtener_conexion
+#para controlar permisos
+from auth import requiere_rol
 
 #este archivo se encarga de gestionar los equipos del torneo
 
@@ -56,6 +58,7 @@ def validar_equipo(datos):
 
 #obtenemos todos los equipos registrados
 @equipos_bp.route("", methods=["GET"])
+@requiere_rol("administrador", "planillero")
 def listar_equipos():
 
     conexion = None
@@ -105,6 +108,7 @@ def listar_equipos():
 
 #obtenemos los datos de un equipo específico
 @equipos_bp.route("/<int:id_equipo>", methods=["GET"])
+@requiere_rol("administrador", "planillero")
 def buscar_equipo(id_equipo):
 
     conexion = None
@@ -159,6 +163,7 @@ def buscar_equipo(id_equipo):
 
 #creamos un nuevo equipo y agregamos automáticamente a su capitán al plantel
 @equipos_bp.route("", methods=["POST"])
+@requiere_rol("administrador")
 def crear_equipo():
 
     datos = request.get_json(silent=True)
@@ -319,6 +324,7 @@ def crear_equipo():
 
 #modificamos el nombre de un equipo
 @equipos_bp.route("/<int:id_equipo>", methods=["PUT"])
+@requiere_rol("administrador")
 def modificar_equipo(id_equipo):
 
     datos = request.get_json(silent=True)
@@ -399,6 +405,7 @@ def modificar_equipo(id_equipo):
 
 #eliminamos un equipo y sus integrantes del plantel
 @equipos_bp.route("/<int:id_equipo>", methods=["DELETE"])
+@requiere_rol("administrador")
 def eliminar_equipo(id_equipo):
 
     conexion = None

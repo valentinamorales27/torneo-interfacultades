@@ -4,6 +4,8 @@ from flask import Blueprint, request, jsonify
 import mysql.connector
 from datetime import date
 from db import obtener_conexion
+#esta parte es para controlar los roles
+from auth import requiere_rol
 
 #gestión de jugadores
 
@@ -80,6 +82,7 @@ def validar_ci(ci):
 
 #obtenemos todos los jugadores registrados en la base de datos
 @jugadores_bp.route("", methods=["GET"])
+@requiere_rol("administrador", "planillero")
 def listar_jugadores():
 
     conexion = None
@@ -127,6 +130,7 @@ def listar_jugadores():
 
 #buscamos un jugador utilizando su CI
 @jugadores_bp.route("/<ci>", methods=["GET"])
+@requiere_rol("administrador", "planillero")
 def buscar_jugador(ci):
 
     if not validar_ci(ci):
@@ -184,6 +188,7 @@ def buscar_jugador(ci):
 
 #registramos un nuevo jugador en la base de datos
 @jugadores_bp.route("", methods=["POST"])
+@requiere_rol("administrador")
 def crear_jugador():
 
     #obtenemos los datos enviados desde el frontend
@@ -296,6 +301,7 @@ def crear_jugador():
 
 #modificamos los datos de un jugador existente
 @jugadores_bp.route("/<ci>", methods=["PUT"])
+@requiere_rol("administrador")
 def modificar_jugador(ci):
 
     if not validar_ci(ci):
@@ -409,6 +415,7 @@ def modificar_jugador(ci):
 
 #eliminamos un jugador de la base de datos
 @jugadores_bp.route("/<ci>", methods=["DELETE"])
+@requiere_rol("administrador")
 def eliminar_jugador(ci):
 
     if not validar_ci(ci):

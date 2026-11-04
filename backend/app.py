@@ -13,10 +13,13 @@ from routes.partidos import partidos_bp
 from routes.planillas import planillas_bp
 from routes.sanciones import sanciones_bp
 from routes.tarjetas import tarjetas_bp
-from routes.partidos import reportes_bp
+from routes.reportes import reportes_bp
+from routes.login import login_dp
 
+from flask_cors import CORS
+#esto es oara que el front pueda hacer solicitudes al back
 app = Flask(__name__)
-
+CORS(app)
 #reegistramos las rutas de los archivos que están en routes
 app.register_blueprint(jugadores_bp)
 app.register_blueprint(equipos_bp)
@@ -28,6 +31,7 @@ app.register_blueprint(planillas_bp)
 app.register_blueprint(sanciones_bp)
 app.register_blueprint(tarjetas_bp)
 app.register_blueprint(reportes_bp)
+app.register_blueprint(login_bp)
 
 
 
