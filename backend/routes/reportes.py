@@ -38,214 +38,131 @@ def obtener_tabla_posiciones(id_torneo):
             e.nombre AS equipo,
 
             #calculamos la cantidad de partidos jugados
-            CASE
-                WHEN SUM(datos.pj) IS NULL THEN 0
-                ELSE SUM(datos.pj)
-            END AS pj,
+            SUM(
+                CASE
+                    WHEN p.id_partido IS NOT NULL THEN 1
+                    ELSE 0
+                END
+            ) AS pj,
 
             #calculamos la cantidad de partidos ganados
-            CASE
-                WHEN SUM(datos.pg) IS NULL THEN 0
-                ELSE SUM(datos.pg)
-            END AS pg,
+            SUM(
+                CASE
+                    WHEN (p.id_equipo_local = e.id_equipo
+                        AND gp.goles_local > gp.goles_visitante)
+                    OR (p.id_equipo_visitante = e.id_equipo
+                        AND gp.goles_visitante > gp.goles_local)
+                    THEN 1
+                    ELSE 0
+                END
+            ) AS pg,
 
             #calculamos la cantidad de partidos empatados
-            CASE
-                WHEN SUM(datos.pe) IS NULL THEN 0
-                ELSE SUM(datos.pe)
-            END AS pe,
+            SUM(
+                CASE
+                    WHEN p.id_partido IS NOT NULL
+                    AND gp.goles_local = gp.goles_visitante
+                    THEN 1
+                    ELSE 0
+                END
+            ) AS pe,
 
             #calculamos la cantidad de partidos perdidos
-            CASE
-                WHEN SUM(datos.pp) IS NULL THEN 0
-                ELSE SUM(datos.pp)
-            END AS pp,
+            SUM(
+                CASE
+                    WHEN (p.id_equipo_local = e.id_equipo
+                        AND gp.goles_local < gp.goles_visitante)
+                    OR (p.id_equipo_visitante = e.id_equipo
+                        AND gp.goles_visitante < gp.goles_local)
+                    THEN 1
+                    ELSE 0
+                END
+            ) AS pp,
 
             #calculamos los goles a favor
-            CASE
-                WHEN SUM(datos.gf) IS NULL THEN 0
-                ELSE SUM(datos.gf)
-            END AS gf,
+            SUM(
+                CASE
+                    WHEN p.id_partido IS NULL THEN 0
+
+                    WHEN p.id_equipo_local = e.id_equipo
+                    THEN gp.goles_local
+
+                    ELSE gp.goles_visitante
+                END
+            ) AS gf,
 
             #calculamos los goles en contra
-            CASE
-                WHEN SUM(datos.gc) IS NULL THEN 0
-                ELSE SUM(datos.gc)
-            END AS gc,
+            SUM(
+                CASE
+                    WHEN p.id_partido IS NULL THEN 0
+
+                    WHEN p.id_equipo_local = e.id_equipo
+                    THEN gp.goles_visitante
+
+                    ELSE gp.goles_local
+                END
+            ) AS gc,
 
             #calculamos la diferencia entre goles a favor y en contra
-            CASE
-                WHEN SUM(datos.gf) IS NULL THEN 0
-                ELSE SUM(datos.gf) - SUM(datos.gc)
-            END AS dg,
+            SUM(
+                CASE
+                    WHEN p.id_partido IS NULL THEN 0
+
+                    WHEN p.id_equipo_local = e.id_equipo
+                    THEN gp.goles_local - gp.goles_visitante
+
+                    ELSE gp.goles_visitante - gp.goles_local
+                END
+            ) AS dg,
 
             #calculamos los puntos: 3 por victoria y 1 por empate
-            CASE
-                WHEN SUM(datos.pg) IS NULL THEN 0
-                ELSE SUM(datos.pg) * 3 + SUM(datos.pe)
-            END AS puntos
+            SUM(
+                CASE
+                    WHEN (p.id_equipo_local = e.id_equipo
+                        AND gp.goles_local > gp.goles_visitante)
+                    OR (p.id_equipo_visitante = e.id_equipo
+                        AND gp.goles_visitante > gp.goles_local)
+                    THEN 3
+
+                    WHEN p.id_partido IS NOT NULL
+                    AND gp.goles_local = gp.goles_visitante
+                    THEN 1
+
+                    ELSE 0
+                END
+            ) AS puntos
 
         FROM equipo e
 
-        LEFT JOIN (
-
-            #calculamos las estadisticas de los equipos locales
-            SELECT
-                p.id_equipo_local AS id_equipo,
-                1 AS pj,
-
-                CASE
-                    WHEN goles.goles_local > goles.goles_visitante
-                    THEN 1 ELSE 0
-                END AS pg,
-
-                CASE
-                    WHEN goles.goles_local = goles.goles_visitante
-                    THEN 1 ELSE 0
-                END AS pe,
-
-                CASE
-                    WHEN goles.goles_local < goles.goles_visitante
-                    THEN 1 ELSE 0
-                END AS pp,
-
-                goles.goles_local AS gf,
-                goles.goles_visitante AS gc
-
-            FROM partido p
-
-            JOIN (
-
-                #calculamos cuantos goles hizo cada equipo en cada partido
-                SELECT
-                    p.id_partido,
-
-                    #calculamos los goles del equipo local
-                    SUM(
-                        CASE
-                            WHEN (pp.id_equipo = p.id_equipo_local AND g.autogol = 0)
-                            OR (pp.id_equipo = p.id_equipo_visitante AND g.autogol = 1)
-                            THEN 1
-                            ELSE 0
-                        END
-                    ) AS goles_local,
-
-                    #calculamos los goles del equipo visitante
-                    SUM(
-                        CASE
-                            WHEN (pp.id_equipo = p.id_equipo_visitante AND g.autogol = 0)
-                            OR (pp.id_equipo = p.id_equipo_local AND g.autogol = 1)
-                            THEN 1
-                            ELSE 0
-                        END
-                    ) AS goles_visitante
-
-                FROM partido p
-
-                #relacionamos los partidos con sus goles y los jugadores que los hicieron
-                LEFT JOIN gol g ON p.id_partido = g.id_partido
-
-                LEFT JOIN planilla_partido pp
-                    ON g.id_partido = pp.id_partido
-                    AND g.ci_jugador = pp.ci_jugador
-
-                #solo consideramos partidos que ya terminaron
-                WHERE p.id_torneo = %s
-                AND p.estado = 'jugado'
-
-                GROUP BY p.id_partido
-
-            ) goles ON p.id_partido = goles.id_partido
-
-            WHERE p.id_torneo = %s
+        #buscamos los partidos de cada equipo ya se haya jugado como visitante o local
+        #usamos left join para no dejar afuera los equipos qeu no tienen partidos
+        LEFT JOIN partido p
+            ON (
+                e.id_equipo = p.id_equipo_local
+                OR e.id_equipo = p.id_equipo_visitante
+            )
+            AND p.id_torneo = e.id_torneo
             AND p.estado = 'jugado'
 
-            UNION ALL #une los reultados de dos consulats select en una sola tabla
-            #junta los de los equipos locales y los visitantes
+        #acá es donde usamos la view de la BD
+        LEFT JOIN vista_goles_partido gp
+            ON p.id_partido = gp.id_partido
+            AND p.id_torneo = gp.id_torneo
 
-            #calculamos las estadisticas de los equipos visitantes
-            SELECT
-                p.id_equipo_visitante AS id_equipo,
-                1 AS pj,
-
-                CASE
-                    WHEN goles.goles_visitante > goles.goles_local
-                    THEN 1 ELSE 0
-                END AS pg,
-
-                CASE
-                    WHEN goles.goles_visitante = goles.goles_local
-                    THEN 1 ELSE 0
-                END AS pe,
-
-                CASE
-                    WHEN goles.goles_visitante < goles.goles_local
-                    THEN 1 ELSE 0
-                END AS pp,
-
-                goles.goles_visitante AS gf,
-                goles.goles_local AS gc
-
-            FROM partido p
-
-            JOIN (
-
-                #calculamos nuevamente los goles para obtener las estadisticas del visitante
-                SELECT
-                    p.id_partido,
-
-                    SUM(
-                        CASE
-                            WHEN (pp.id_equipo = p.id_equipo_local AND g.autogol = 0)
-                            OR (pp.id_equipo = p.id_equipo_visitante AND g.autogol = 1)
-                            THEN 1
-                            ELSE 0
-                        END
-                    ) AS goles_local,
-
-                    SUM(
-                        CASE
-                            WHEN (pp.id_equipo = p.id_equipo_visitante AND g.autogol = 0)
-                            OR (pp.id_equipo = p.id_equipo_local AND g.autogol = 1)
-                            THEN 1
-                            ELSE 0
-                        END
-                    ) AS goles_visitante
-
-                FROM partido p
-
-                LEFT JOIN gol g ON p.id_partido = g.id_partido
-
-                LEFT JOIN planilla_partido pp
-                    ON g.id_partido = pp.id_partido
-                    AND g.ci_jugador = pp.ci_jugador
-
-                WHERE p.id_torneo = %s
-                AND p.estado = 'jugado'
-
-                GROUP BY p.id_partido
-
-            ) goles ON p.id_partido = goles.id_partido
-
-            WHERE p.id_torneo = %s
-            AND p.estado = 'jugado'
-
-        ) datos ON e.id_equipo = datos.id_equipo
-
-        #mostramos solamente los equipos del torneo solicitado
+        #solo queremos los del torneo actual
         WHERE e.id_torneo = %s
 
-        #agrupamos las estadisticas de cada equipo
+        #agrupamos por cada equipo
         GROUP BY e.id_equipo, e.nombre
 
-        #ordenamos por puntos, diferencia de goles y goles a favor
+        #ordenamos todo
         ORDER BY puntos DESC, dg DESC, gf DESC, e.nombre ASC
     """
 
     try:
         resultados = ejecutar_consulta(
             consulta,
-            (id_torneo, id_torneo, id_torneo, id_torneo, id_torneo)
+            (id_torneo,)
         )
 
         return jsonify(resultados), 200
