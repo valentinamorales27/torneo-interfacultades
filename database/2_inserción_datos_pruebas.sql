@@ -33,8 +33,8 @@ insert into turno (id_turno, hora_inicio, hora_fin) values
 
 /*Logins (usuarios)*/
 insert into login (correo, contraseña, rol) values
-('admin_torneo@gmail.com', 'admin1234', 'administrador'),
-('planillero_torneo@gmail.com', 'planillero1234', 'planillero');
+('admin_torneo@gmail.com', 'pbkdf2:sha256:1000000$pkCs5BBHvR8ZynGa$fbe23960200853951291f5d6e39ae8c9a5987ed1bb118baf78fb6783baf737bc', 'administrador'),
+('planillero_torneo@gmail.com', 'pbkdf2:sha256:1000000$Naal5kps0myyl6pG$4a714783b1b3fc2340e217ef11312d66fd4c5adf922c807eaaf27d66a4630e21', 'planillero');
 
 /*Jugadores*/
 insert into jugador (ci, nombre, apellido, email, fecha_nacimiento, tipo, id_facultad) values
