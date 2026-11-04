@@ -16,8 +16,10 @@
   6. Tabla de **planilla_partido**: líneas 133-142.
   7. Tablas de **gol** y **tarjeta**: se pueden ejecutar juntas (líneas 144-162).
   8. Por último, tabla **sancion_jugador**: líneas 164- 177.
-### 4. Ejecución del script 2 /inserción de los datos de prueba)
+### 4. Ejecución del script 2 (inserción de los datos de prueba)
 - Abrir el archivo *2_inserción_datos_prueba.sql* y ejecutar sus líenas respetando el mismo orden de las instrucciones 2-8 del paso anterior (la ejecución del script 1).
 - !Aclaración: el número de las líneas no coincidirá.
-
-- Luego de haber seguido estos 4 pasos ya deberías de tener la Base de Datos creada y con sus datos. Ahora ya puedes ir a la carpeta /backend y seguir con los pasos para correr la aplicación de forma local.
+### 5. Ejecución del script 3 (creación de una view para cálculo de goles por aprtido)
+- Abrir el archivo *3_creacion_view_goles_partido.sql* y ejecutar todas sus líneas.
+  
+- Luego de haber seguido estos 5 pasos ya deberías de tener la Base de Datos creada y con sus datos. Ahora ya puedes ir a la carpeta /backend y seguir con los pasos para correr la aplicación de forma local.
