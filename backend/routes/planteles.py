@@ -2,6 +2,8 @@
 from flask import Blueprint, request, jsonify
 import mysql.connector
 from db import obtener_conexion
+#para controlar los permisos de usuarios
+from auth import requiere_rol
 
 #este archivo se encarga de gestionar los planteles de los equipos
 
@@ -49,6 +51,7 @@ def obtener_equipo_en_inscripcion(cursor, id_equipo):
 
 #obtenemos los jugadores que integran un equipo
 @planteles_bp.route("/<int:id_equipo>/plantel", methods=["GET"])
+@requiere_rol("administrador", "planillero")
 def listar_plantel(id_equipo):
 
     conexion = None
@@ -111,6 +114,7 @@ def listar_plantel(id_equipo):
 
 #agregamos un jugador al plantel de un equipo
 @planteles_bp.route("/<int:id_equipo>/plantel", methods=["POST"])
+@requiere_rol("administrador")
 def agregar_jugador_plantel(id_equipo):
 
     datos = request.get_json(silent=True)
@@ -333,6 +337,7 @@ def agregar_jugador_plantel(id_equipo):
 
 #quitamos un jugador del plantel de un equipo
 @planteles_bp.route("/<int:id_equipo>/plantel/<ci>", methods=["DELETE"])
+@requiere_rol("administrador")
 def quitar_jugador_plantel(id_equipo, ci):
 
     if not validar_ci(ci):
@@ -464,6 +469,7 @@ def quitar_jugador_plantel(id_equipo, ci):
 #cambiamos el capitán de un equipo, pq no lo podemos borrar así nomás
 #por dependencias, así que hicimos una función para reemplazarlo por otro jugador de ese mismo plantel
 @planteles_bp.route("/<int:id_equipo>/capitan", methods=["PUT"])
+@requiere_rol("administrador")
 def cambiar_capitan(id_equipo):
     #si no pudo obtener los datos devuelve none no una excepción
     datos = request.get_json(silent=True)

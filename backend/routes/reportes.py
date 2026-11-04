@@ -2,6 +2,8 @@
 from flask import Blueprint, jsonify
 import mysql.connector
 from db import obtener_conexion
+#para agregar los permisos de usuario
+from auth import requiere_rol
 
 reportes_bp = Blueprint("reportes", __name__, url_prefix="/reportes")
 
@@ -27,6 +29,7 @@ def ejecutar_consulta(consulta, parametros=()):
 
 #1.tabla de posiciones
 @reportes_bp.route("/tabla-posiciones/<int:id_torneo>", methods=["GET"])
+@requiere_rol("administrador")
 def obtener_tabla_posiciones(id_torneo):
 
     consulta = """
@@ -253,6 +256,7 @@ def obtener_tabla_posiciones(id_torneo):
 
 #2.top 10 goleadores
 @reportes_bp.route("/goleadores/<int:id_torneo>", methods=["GET"])
+@requiere_rol("administrador")
 def obtener_goleadores(id_torneo):
 
     consulta = """
@@ -301,6 +305,7 @@ def obtener_goleadores(id_torneo):
 
 #3.fair play
 @reportes_bp.route("/fair-play/<int:id_torneo>", methods=["GET"])
+@requiere_rol("administrador")
 def obtener_fair_play(id_torneo):
 
     consulta = """
@@ -367,6 +372,7 @@ def obtener_fair_play(id_torneo):
 
 #4.promedio de goles por fecha
 @reportes_bp.route("/promedio-goles/<int:id_torneo>", methods=["GET"])
+@requiere_rol("administrador")
 def obtener_promedio_goles(id_torneo):
 
     consulta = """
@@ -402,6 +408,7 @@ def obtener_promedio_goles(id_torneo):
 
 #5.canchas y turnos mas utilizados
 @reportes_bp.route("/uso-canchas-turnos/<int:id_torneo>", methods=["GET"])
+@requiere_rol("administrador")
 def obtener_uso_canchas_turnos(id_torneo):
 
     consulta = """
@@ -443,6 +450,7 @@ def obtener_uso_canchas_turnos(id_torneo):
 
 #6.jugadores por facultad y tipo
 @reportes_bp.route("/jugadores-facultad-tipo/<int:id_torneo>", methods=["GET"])
+@requiere_rol("administrador")
 def obtener_jugadores_facultad_tipo(id_torneo):
 
     consulta = """
@@ -471,6 +479,7 @@ def obtener_jugadores_facultad_tipo(id_torneo):
 
 #7.jugadores inscriptos que nunca aparecieron en una planilla
 @reportes_bp.route("/jugadores-sin-planilla/<int:id_torneo>", methods=["GET"])
+@requiere_rol("administrador")
 def obtener_jugadores_sin_planilla(id_torneo):
 
     consulta = """
@@ -507,6 +516,7 @@ def obtener_jugadores_sin_planilla(id_torneo):
 
 #8.sanciones por equipo y motivo
 @reportes_bp.route("/sanciones-equipo/<int:id_torneo>", methods=["GET"])
+@requiere_rol("administrador")
 def obtener_sanciones_equipo(id_torneo):
 
     consulta = """
@@ -540,6 +550,7 @@ def obtener_sanciones_equipo(id_torneo):
 
 #9.porcentaje de partidos por estado
 @reportes_bp.route("/estado-partidos/<int:id_torneo>", methods=["GET"])
+@requiere_rol("administrador")
 def obtener_estado_partidos(id_torneo):
 
     consulta = """
@@ -587,6 +598,7 @@ def obtener_estado_partidos(id_torneo):
 ##CONSULTAS ADICIONALES-3
 #obtenemos los partidos cancelados y postergados de un torneo
 @reportes_bp.route("/partidos-cancelados-postergados/<int:id_torneo>", methods=["GET"])
+@requiere_rol("administrador")
 def partidos_cancelados_postergados(id_torneo):
 
     consulta = """
@@ -622,6 +634,7 @@ def partidos_cancelados_postergados(id_torneo):
     return jsonify(resultados), 200
 #obtenemos los proximos 3 partidos de un torneo
 @reportes_bp.route("/proximos-partidos/<int:id_torneo>", methods=["GET"])
+@requiere_rol("administrador")
 def proximos_partidos(id_torneo):
 
     consulta = """
@@ -660,6 +673,7 @@ def proximos_partidos(id_torneo):
 
 #obtenemos los jugadores que disputaron mas partidos de un torneo
 @reportes_bp.route("/jugadores-mas-partidos/<int:id_torneo>", methods=["GET"])
+@requiere_rol("administrador")
 def jugadores_mas_partidos(id_torneo):
 
     consulta = """

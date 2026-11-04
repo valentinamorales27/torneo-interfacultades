@@ -2,6 +2,8 @@
 from flask import Blueprint, request, jsonify
 import mysql.connector
 from db import obtener_conexion
+#para controlar permisos
+from auth import requiere_rol
 
 #gestion de las canchas
 
@@ -63,6 +65,7 @@ def validar_modificacion_cancha(datos):
 
 #obtenemos todas las canchas
 @canchas_bp.route("/", methods=["GET"])
+@requiere_rol("administrador", "planillero")
 def obtener_canchas():
 
     conexion = obtener_conexion()
@@ -95,6 +98,7 @@ def obtener_canchas():
 
 #obtenemos una cancha por su nombre y complejo
 @canchas_bp.route("/<int:id_complejo>/<string:nombre_cancha>", methods=["GET"])
+@requiere_rol("administrador", "planillero")
 def obtener_cancha(id_complejo, nombre_cancha):
 
     conexion = obtener_conexion()
@@ -129,6 +133,7 @@ def obtener_cancha(id_complejo, nombre_cancha):
 
 #registramos una nueva cancha
 @canchas_bp.route("/", methods=["POST"])
+@requiere_rol("administrador")
 def crear_cancha():
 
     datos = request.get_json(silent=True)
@@ -183,6 +188,7 @@ def crear_cancha():
 
 #modificamos los datos de una cancha
 @canchas_bp.route("/<int:id_complejo>/<string:nombre_cancha>", methods=["PUT"])
+@requiere_rol("administrador")
 def modificar_cancha(id_complejo, nombre_cancha):
 
     datos = request.get_json(silent=True)
@@ -240,6 +246,7 @@ def modificar_cancha(id_complejo, nombre_cancha):
 
 #eliminamos una cancha
 @canchas_bp.route("/<int:id_complejo>/<string:nombre_cancha>", methods=["DELETE"])
+@requiere_rol("administrador")
 def eliminar_cancha(id_complejo, nombre_cancha):
 
     conexion = obtener_conexion()

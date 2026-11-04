@@ -2,6 +2,9 @@
 from flask import Blueprint, request, jsonify
 import mysql.connector
 from db import obtener_conexion
+#para agregar los permisos de usuarios
+from auth import requiere_rol
+
 
 #gestion de las planillas de los partidos
 
@@ -22,11 +25,9 @@ def obtener_partido(cursor, id_partido):
 
     consulta = """
         SELECT p.id_partido, p.id_torneo, p.numero_fecha,
-               p.id_equipo_local, p.id_equipo_visitante,
-               p.estado,
-               TIMESTAMP(p.dia, t.hora_fin) <= NOW() AS finalizado_horario
+            p.id_equipo_local, p.id_equipo_visitante,
+            p.estado
         FROM partido p
-        JOIN turno t ON p.id_turno = t.id_turno
         WHERE p.id_partido = %s
     """
 
@@ -76,6 +77,7 @@ def jugador_esta_suspendido(cursor, ci_jugador, id_torneo, id_equipo, numero_fec
 
 #obtenemos los jugadores de la planilla de un partido
 @planillas_bp.route("/<int:id_partido>/planilla", methods=["GET"])
+@requiere_rol("administrador", "planillero")
 def obtener_planilla(id_partido):
 
     conexion = obtener_conexion()
@@ -117,6 +119,7 @@ def obtener_planilla(id_partido):
 
 #agregamos un jugador a la planilla de un partido
 @planillas_bp.route("/<int:id_partido>/planilla", methods=["POST"])
+@requiere_rol("administrador", "planillero")
 def agregar_jugador_planilla(id_partido):
 
     datos = request.get_json(silent=True)
@@ -139,13 +142,10 @@ def agregar_jugador_planilla(id_partido):
         if not partido:
             return jsonify({"error": "No existe un partido con ese identificador"}), 404
 
-        if partido["estado"] == "cancelado":
-            return jsonify({"error": "No se puede registrar una planilla para un partido cancelado"}), 409
-
-        #verificamos que el partido ya haya terminado
-        if not partido["finalizado_horario"]:
+        #verificamos que el partido esté jugado
+        if partido["estado"] != "jugado":
             return jsonify({
-                "error": "La planilla solamente se puede registrar después de finalizado el turno del partido"
+                "error": "Solamente se pueden registrar jugadores en partidos jugados"
             }), 409
 
         #verificamos que el jugador exista y pertenezca a uno de los equipos del partido
@@ -227,6 +227,7 @@ def agregar_jugador_planilla(id_partido):
 
 #eliminamos un jugador de la planilla
 @planillas_bp.route("/<int:id_partido>/planilla/<string:ci_jugador>", methods=["DELETE"])
+@requiere_rol("administrador")
 def eliminar_jugador_planilla(id_partido, ci_jugador):
 
     if not validar_ci(ci_jugador):

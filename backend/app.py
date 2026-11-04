@@ -1,5 +1,6 @@
 from flask import Flask
-
+from dotenv import load_dotenv
+import os
 
 #Este archivo define las rutas y la lógica del back (se agregan las reglas del obligatorio)
 
@@ -14,11 +15,16 @@ from routes.planillas import planillas_bp
 from routes.sanciones import sanciones_bp
 from routes.tarjetas import tarjetas_bp
 from routes.reportes import reportes_bp
-from routes.login import login_dp
+from routes.login import login_bp
 
 from flask_cors import CORS
 #esto es oara que el front pueda hacer solicitudes al back
+load_dotenv() #para sacr la clave del .env
 app = Flask(__name__)
+
+#clave secreta para gestionar las sesiones
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY")
+
 CORS(app)
 #reegistramos las rutas de los archivos que están en routes
 app.register_blueprint(jugadores_bp)

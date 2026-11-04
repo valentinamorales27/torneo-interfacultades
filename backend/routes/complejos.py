@@ -2,6 +2,8 @@
 from flask import Blueprint, request, jsonify
 import mysql.connector
 from db import obtener_conexion
+#para controlar permisos
+from auth import requiere_rol
 
 #gestion de los complejos deportivos
 
@@ -32,6 +34,7 @@ def validar_complejo(datos):
 
 #obtenemos todos los complejos
 @complejos_bp.route("/", methods=["GET"])
+@requiere_rol("administrador", "planillero")
 def obtener_complejos():
 
     conexion = obtener_conexion()
@@ -59,6 +62,7 @@ def obtener_complejos():
 
 #obtenemos un complejo por su identificador
 @complejos_bp.route("/<int:id_complejo>", methods=["GET"])
+@requiere_rol("administrador", "planillero")
 def obtener_complejo(id_complejo):
 
     conexion = obtener_conexion()
@@ -89,6 +93,7 @@ def obtener_complejo(id_complejo):
 
 #registramos un nuevo complejo
 @complejos_bp.route("/", methods=["POST"])
+@requiere_rol("administrador")
 def crear_complejo():
 
     datos = request.get_json(silent=True)
@@ -134,6 +139,7 @@ def crear_complejo():
 
 #modificamos los datos de un complejo
 @complejos_bp.route("/<int:id_complejo>", methods=["PUT"])
+@requiere_rol("administrador")
 def modificar_complejo(id_complejo):
 
     datos = request.get_json(silent=True)
@@ -187,6 +193,7 @@ def modificar_complejo(id_complejo):
 
 #eliminamos un complejo
 @complejos_bp.route("/<int:id_complejo>", methods=["DELETE"])
+@requiere_rol("administrador")
 def eliminar_complejo(id_complejo):
 
     conexion = obtener_conexion()

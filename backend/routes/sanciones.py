@@ -1,6 +1,8 @@
 from flask import Blueprint, request, jsonify
 import mysql.connector
 from db import obtener_conexion
+#permisos de usuarios
+from auth import requiere_rol
 
 #gestion de las sanciones
 
@@ -17,6 +19,7 @@ def validar_ci(ci):
 
 #obtenemos todas las sanciones
 @sanciones_bp.route("/", methods=["GET"])
+@requiere_rol("administrador")
 def obtener_sanciones():
 
     conexion = obtener_conexion()
@@ -51,6 +54,7 @@ def obtener_sanciones():
 
 #obtenemos las sanciones de un jugador
 @sanciones_bp.route("/jugador/<string:ci_jugador>", methods=["GET"])
+@requiere_rol("administrador")
 def obtener_sanciones_jugador(ci_jugador):
 
     if not validar_ci(ci_jugador):
@@ -90,6 +94,7 @@ def obtener_sanciones_jugador(ci_jugador):
 #registramos una sancion disciplinaria
 #estas si se pueden registrar manualmente, a diferencia de las automáticas que se generan por tarjetas
 @sanciones_bp.route("/", methods=["POST"])
+@requiere_rol("administrador")
 def agregar_sancion_disciplinaria():
 
     datos = request.get_json(silent=True)

@@ -2,6 +2,8 @@
 from flask import Blueprint, request, jsonify
 import mysql.connector
 from db import obtener_conexion
+#para controlar permisos
+from auth import requiere_rol
 
 #gestion de los goles de los partidos
 
@@ -22,11 +24,9 @@ def obtener_partido(cursor, id_partido):
 
     cursor.execute(
         """
-        SELECT p.id_partido, p.id_torneo, p.estado,
-               TIMESTAMP(p.dia, t.hora_fin) <= NOW() AS finalizado_horario
-        FROM partido p
-        JOIN turno t ON p.id_turno = t.id_turno
-        WHERE p.id_partido = %s
+        SELECT id_partido, id_torneo, estado
+        FROM partido
+        WHERE id_partido = %s
         """,
         (id_partido,)
     )
@@ -36,6 +36,7 @@ def obtener_partido(cursor, id_partido):
 
 #obtenemos los goles de un partido
 @goles_bp.route("/<int:id_partido>/goles", methods=["GET"])
+@requiere_rol("administrador", "planillero")
 def obtener_goles(id_partido):
 
     conexion = obtener_conexion()
@@ -80,6 +81,7 @@ def obtener_goles(id_partido):
 
 #registramos un gol en un partido
 @goles_bp.route("/<int:id_partido>/goles", methods=["POST"])
+@requiere_rol("administrador", "planillero")
 def agregar_gol(id_partido):
 
     datos = request.get_json(silent=True)
@@ -111,16 +113,10 @@ def agregar_gol(id_partido):
         if not partido:
             return jsonify({"error": "No existe un partido con ese identificador"}), 404
 
-        if partido["estado"] == "cancelado":
-            return jsonify({"error": "No se pueden registrar goles en un partido cancelado"}), 409
-
-        if partido["estado"] == "postergado":
-            return jsonify({"error": "No se pueden registrar goles en un partido postergado"}), 409
-
-        #verificamos que el turno del partido haya finalizado
-        if not partido["finalizado_horario"]:
+        #solamente se pueden registrar goles en partidos jugados
+        if partido["estado"] != "jugado":
             return jsonify({
-                "error": "Los goles solamente se pueden registrar después de finalizado el turno del partido"
+                "error": "Solamente se pueden registrar goles en partidos jugados"
             }), 409
 
         #verificamos que el jugador esté registrado en la planilla
@@ -176,24 +172,34 @@ def agregar_gol(id_partido):
 
 #eliminamos un gol
 @goles_bp.route("/goles/<int:id_gol>", methods=["DELETE"])
+@requiere_rol("administrador")
 def eliminar_gol(id_gol):
 
     conexion = obtener_conexion()
-    cursor = conexion.cursor()
+    cursor = conexion.cursor(dictionary=True)
 
     try:
-        #verificamos que exista el gol
+        #verificamos que exista el gol y obtenemos el estado del partido
         cursor.execute(
             """
-            SELECT id_gol
-            FROM gol
-            WHERE id_gol = %s
+            SELECT g.id_gol, p.estado
+            FROM gol g
+            JOIN partido p ON g.id_partido = p.id_partido
+            WHERE g.id_gol = %s
             """,
             (id_gol,)
         )
 
-        if not cursor.fetchone():
+        gol = cursor.fetchone()
+
+        if not gol:
             return jsonify({"error": "No existe un gol con ese identificador"}), 404
+
+        #solamente se pueden eliminar goles de partidos jugados
+        if gol["estado"] != "jugado":
+            return jsonify({
+                "error": "Solamente se pueden eliminar goles de partidos jugados"
+            }), 409
 
         #eliminamos el gol
         cursor.execute(

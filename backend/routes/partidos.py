@@ -3,6 +3,8 @@ from flask import Blueprint, request, jsonify
 import mysql.connector
 from datetime import datetime
 from db import obtener_conexion
+#agregamos permisos
+from auth import requiere_rol
 
 #gestion de los partidos del torneo
 
@@ -117,7 +119,7 @@ def validar_equipos_partido(cursor, datos, id_partido=None):
         SELECT id_partido
         FROM partido
         WHERE id_torneo = %s
-        AND estado <> 'cancelado'
+        AND estado NOT IN ('cancelado', 'postergado')
         AND (
             (id_equipo_local = %s AND id_equipo_visitante = %s)
             OR
@@ -186,7 +188,7 @@ def validar_disponibilidad_cancha(cursor, datos, id_partido=None):
         AND id_turno = %s
         AND nombre_cancha = %s
         AND id_complejo = %s
-        AND estado <> 'cancelado'
+        AND estado NOT IN ('cancelado', 'postergado')
     """
 
     valores = [
@@ -211,6 +213,7 @@ def validar_disponibilidad_cancha(cursor, datos, id_partido=None):
 
 #obtenemos todos los partidos
 @partidos_bp.route("/", methods=["GET"])
+@requiere_rol("administrador", "planillero")
 def obtener_partidos():
 
     conexion = obtener_conexion()
@@ -244,6 +247,7 @@ def obtener_partidos():
 
 #obtenemos los partidos de un torneo
 @partidos_bp.route("/torneo/<int:id_torneo>", methods=["GET"])
+@requiere_rol("administrador", "planillero")
 def obtener_partidos_torneo(id_torneo):
 
     conexion = obtener_conexion()
@@ -278,6 +282,7 @@ def obtener_partidos_torneo(id_torneo):
 
 #obtenemos un partido por su identificador
 @partidos_bp.route("/<int:id_partido>", methods=["GET"])
+@requiere_rol("administrador", "planillero")
 def obtener_partido(id_partido):
 
     conexion = obtener_conexion()
@@ -314,6 +319,7 @@ def obtener_partido(id_partido):
 
 #registramos un nuevo partido
 @partidos_bp.route("/", methods=["POST"])
+@requiere_rol("administrador")
 def crear_partido():
 
     datos = request.get_json(silent=True)
@@ -322,7 +328,10 @@ def crear_partido():
 
     if error_validacion:
         return jsonify({"error": error_validacion}), 400
-
+    if datos.get("estado", "programado") != "programado":
+        return jsonify({
+            "error": "Un partido nuevo debe crearse en estado programado"
+        }), 400
     conexion = obtener_conexion()
     cursor = conexion.cursor(dictionary=True)
 
@@ -355,7 +364,7 @@ def crear_partido():
             datos["id_turno"],
             datos["nombre_cancha"].strip(),
             datos["id_complejo"],
-            datos.get("estado", "programado")
+            datos.get("programado") #los partidos nuevos solo pueden ser programados
         )
 
         cursor.execute(consulta, valores)
@@ -385,6 +394,7 @@ def crear_partido():
 
 #modificamos los datos de un partido
 @partidos_bp.route("/<int:id_partido>", methods=["PUT"])
+@requiere_rol("administrador")
 def modificar_partido(id_partido):
 
     datos = request.get_json(silent=True)
@@ -409,9 +419,20 @@ def modificar_partido(id_partido):
         if not partido_actual:
             return jsonify({"error": "No existe un partido con ese identificador"}), 404
 
-        if partido_actual["estado"] == "jugado":
+        #verificamos que el estado del partido pueda modificarse
+        estado_actual = partido_actual["estado"]
+        nuevo_estado = datos.get("estado", estado_actual)
+
+        estados_permitidos = {
+            "programado": ["jugado", "postergado", "cancelado"],
+            "postergado": ["programado", "cancelado"],
+            "cancelado": [],
+            "jugado": []
+        }
+
+        if nuevo_estado != estado_actual and nuevo_estado not in estados_permitidos[estado_actual]:
             return jsonify({
-                "error": "No se puede modificar un partido que ya fue jugado"
+                "error": "No se puede cambiar el partido de ese estado al nuevo estado"
             }), 409
 
         error_equipos = validar_equipos_partido(cursor, datos, id_partido)
@@ -447,8 +468,7 @@ def modificar_partido(id_partido):
             datos["id_turno"],
             datos["nombre_cancha"].strip(),
             datos["id_complejo"],
-            #porque en la base pusimos como valor predeterminado programado
-            datos.get("estado", "programado"),
+            datos.get("estado", partido_actual["estado"]),
             id_partido
         )
 
@@ -474,6 +494,7 @@ def modificar_partido(id_partido):
 
 #eliminamos un partido
 @partidos_bp.route("/<int:id_partido>", methods=["DELETE"])
+@requiere_rol("administrador")
 def eliminar_partido(id_partido):
 
     conexion = obtener_conexion()
@@ -491,9 +512,9 @@ def eliminar_partido(id_partido):
         if not partido:
             return jsonify({"error": "No existe un partido con ese identificador"}), 404
 
-        if partido["estado"] == "jugado":
+        if partido["estado"] != "programado":
             return jsonify({
-                "error": "No se puede eliminar un partido que ya fue jugado"
+                "error": "Solamente se pueden eliminar partidos programados"
             }), 409
 
         cursor.execute(
