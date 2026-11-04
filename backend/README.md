@@ -16,10 +16,31 @@
 - Comando: *python -m pip install -r requirements.txt* (instala las bibliotecas necesarias para poder correr el backend.
 ## 5. Crear la base de datos
 - Para poder continuar ya debe de tener creada la BD de forma local, si no lo ha hecho aún debe de ir a la carpeta de *database* de este remo y seguir los pasos del README.md para poder crear e insertar los datos de prueba en la base de datos. Una vez creada puede seguir con el paso siguiente.
-## 6. Configurar la conexión con SQL
-- Dentro de la carpeta del *backend* en la que usted está parado en VSCode puede ver el dile db.py. Este archivo se encarga de las consiguraciones de conexión con SQL, para poder utilizarlo usted debe de configurar el usuario, la contraseña y el nombre de la base de datos. Estos valores deben coincidir con la instalación local de MySQL del paso 5 (cuando creo la BD).
-- Para checkear que la conexión quedó establecida use el comando *python db.py*, si funciona debería de ver en la consola un mensaje indicando lo mismo.
-## 7. Iniciar el servidor Flask
-- Comando: *python app.py* (ejecuta el backend). Al ejecutarse debería de mostarle una dirección local en la terminal. COn esa dirección puede acceder al servidor desde la computadora.
-- !! La terminal en la que se ejecutó este comando debe de quedar abierta para que se pueda utilizar el backend.
+## 6. Configurar la conexión con MySQL
+- Dentro de la carpeta `backend` se encuentra el archivo `db.py`, que se encarga de establecer la conexión con MySQL.
+- Para que funcione correctamente, cada usuario debe configurar sus propios datos de conexión.
+- Dentro de la carpeta `backend`, se debe crear un archivo llamado `.env` con el siguiente contenido:
+  ```env
+  MYSQL_HOST=localhost
+  MYSQL_USER=root
+  MYSQL_PASSWORD=tu_contraseña
+  MYSQL_DATABASE=torneo_interfacultades
+  ```
+- Se deben reemplazar los valores por los correspondientes a la instalación local de MySQL. Si el usuario no tiene contraseña, podes dejar el valor de `MYSQL_PASSWORD` vacío.
+- Para ver si la conexión quedó establecida correctamente, ejecutar el comando `python db.py`.
+- Si funciona, debería aparecer un mensaje indicando que la conexión con MySQL fue exitosa.
 
+## 7. Configurar la clave secreta de Flask
+- Para gestionar las sesiones de usuario, Flask necesita una clave secreta.
+- Dentro del mismo archivo `.env` del paso anterior, agregar la siguiente línea: `SECRET_KEY=tu_clave_secreta`.
+- Para generar una clave aleatoria, ejecutar el siguiente comando en la terminal:
+  ```bash
+  python -c "import secrets; print(secrets.token_hex(32))"
+  ```
+- Copiar el resultado y utilizarlo como valor de `SECRET_KEY`.
+
+## 8. Iniciar el servidor Flask
+- Por último, ejecutar el comando `python app.py` para iniciar el backend.
+- Si todo está configurado correctamente, Flask mostrará una dirección local en la terminal, por ejemplo: `http://127.0.0.1:5000`.
+- Con esa dirección se puede acceder al servidor desde la computadora.
+- **Importante:** La terminal en la que se ejecutó este comando debe permanecer abierta para que el backend continúe funcionando.
