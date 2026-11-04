@@ -16,27 +16,31 @@
 - Comando: *python -m pip install -r requirements.txt* (instala las bibliotecas necesarias para poder correr el backend.
 ## 5. Crear la base de datos
 - Para poder continuar ya debe de tener creada la BD de forma local, si no lo ha hecho aún debe de ir a la carpeta de *database* de este remo y seguir los pasos del README.md para poder crear e insertar los datos de prueba en la base de datos. Una vez creada puede seguir con el paso siguiente.
-7. Configurar la clave secreta de Flask
+## 6. Configurar la conexión con MySQL
+- Dentro de la carpeta `backend` se encuentra el archivo `db.py`, que se encarga de establecer la conexión con MySQL.
+- Para que funcione correctamente, cada usuario debe configurar sus propios datos de conexión.
+- Dentro de la carpeta `backend`, se debe crear un archivo llamado `.env` con el siguiente contenido:
+  ```env
+  MYSQL_HOST=localhost
+  MYSQL_USER=root
+  MYSQL_PASSWORD=tu_contraseña
+  MYSQL_DATABASE=torneo_interfacultades
+  ```
+- Se deben reemplazar los valores por los correspondientes a la instalación local de MySQL. Si el usuario no tiene contraseña, podes dejar el valor de `MYSQL_PASSWORD` vacío.
+- Para ver si la conexión quedó establecida correctamente, ejecutar el comando `python db.py`.
+- Si funciona, debería aparecer un mensaje indicando que la conexión con MySQL fue exitosa.
 
-Para gestionar las sesiones de usuario, Flask necesita una clave secreta.
+## 7. Configurar la clave secreta de Flask
+- Para gestionar las sesiones de usuario, Flask necesita una clave secreta.
+- Dentro del mismo archivo `.env` del paso anterior, agregar la siguiente línea: `SECRET_KEY=tu_clave_secreta`.
+- Para generar una clave aleatoria, ejecutar el siguiente comando en la terminal:
+  ```bash
+  python -c "import secrets; print(secrets.token_hex(32))"
+  ```
+- Copiar el resultado y utilizarlo como valor de `SECRET_KEY`.
 
-Dentro del mismo archivo .env creado en el paso anterior, agregar también la siguiente variable:
-
-SECRET_KEY=tu_clave_secreta
-
-Para generar una clave aleatoria, ejecutar en la terminal:
-
-python -c "import secrets; print(secrets.token_hex(32))"
-
-Copiar el resultado obtenido y utilizarlo como valor de SECRET_KEY en el archivo .env.
-
-Importante: El archivo .env contiene información privada y no debe subirse a GitHub. Cada usuario deberá generar su propia clave secreta y configurar sus propias credenciales de MySQL.
-
-8. Iniciar el servidor Flask
-
-Comando: python app.py (ejecuta el backend).
-
-Al ejecutarse, debería mostrarse una dirección local en la terminal. El backend quedará disponible en http://127.0.0.1:5000.
-
-Importante: La terminal en la que se ejecutó este comando debe permanecer abierta mientras se utiliza el backend.
-
+## 8. Iniciar el servidor Flask
+- Por último, ejecutar el comando `python app.py` para iniciar el backend.
+- Si todo está configurado correctamente, Flask mostrará una dirección local en la terminal, por ejemplo: `http://127.0.0.1:5000`.
+- Con esa dirección se puede acceder al servidor desde la computadora.
+- **Importante:** La terminal en la que se ejecutó este comando debe permanecer abierta para que el backend continúe funcionando.
