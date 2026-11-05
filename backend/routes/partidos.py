@@ -3,6 +3,7 @@ from flask import Blueprint, request, jsonify
 import mysql.connector
 from datetime import datetime
 from db import obtener_conexion
+from datetime import datetime
 #agregamos permisos
 from auth import requiere_rol
 
@@ -23,7 +24,7 @@ def validar_id(valor):
 #validamos los datos de un partido
 def validar_partido(datos):
 
-    if not datos:
+    if not isinstance(datos, dict) or not datos:
         return "Se deben enviar los datos del partido"
 
     id_torneo = datos.get("id_torneo")
@@ -31,6 +32,17 @@ def validar_partido(datos):
     id_equipo_local = datos.get("id_equipo_local")
     id_equipo_visitante = datos.get("id_equipo_visitante")
     dia = datos.get("dia")
+    if not isinstance(dia, str):
+        return "La fecha debe tener el formato YYYY-MM-DD"
+
+    try:
+        fecha = datetime.strptime(dia, "%Y-%m-%d")
+
+        if fecha.strftime("%Y-%m-%d") != dia:
+            return "La fecha debe tener el formato YYYY-MM-DD"
+
+    except ValueError:
+        return "La fecha debe tener el formato YYYY-MM-DD"
     id_turno = datos.get("id_turno")
     nombre_cancha = datos.get("nombre_cancha")
     id_complejo = datos.get("id_complejo")
@@ -82,6 +94,10 @@ def validar_equipos_partido(cursor, datos, id_partido=None):
     equipo_visitante = datos["id_equipo_visitante"]
     numero_fecha = datos["numero_fecha"]
 
+    # Verificamos que los equipos sean diferentes
+    if equipo_local == equipo_visitante:
+        return "Un equipo no puede jugar contra sí mismo"
+
     #verificamos que los dos equipos pertenezcan al torneo
     cursor.execute(
         """
@@ -119,7 +135,7 @@ def validar_equipos_partido(cursor, datos, id_partido=None):
         SELECT id_partido
         FROM partido
         WHERE id_torneo = %s
-        AND estado NOT IN ('cancelado', 'postergado')
+        AND estado <> 'cancelado'
         AND (
             (id_equipo_local = %s AND id_equipo_visitante = %s)
             OR
@@ -141,7 +157,9 @@ def validar_equipos_partido(cursor, datos, id_partido=None):
 
     cursor.execute(consulta, tuple(valores))
 
-    if cursor.fetchone():
+    resultados = cursor.fetchall()
+
+    if resultados:
         return "Estos equipos ya se enfrentaron en este torneo"
 
     #verificamos que ningún equipo tenga otro partido en la misma fecha
@@ -172,7 +190,9 @@ def validar_equipos_partido(cursor, datos, id_partido=None):
 
     cursor.execute(consulta, tuple(valores))
 
-    if cursor.fetchone():
+    resultados = cursor.fetchall()
+
+    if resultados:
         return "Uno de los equipos ya tiene un partido programado en esa fecha"
 
     return None
@@ -205,9 +225,10 @@ def validar_disponibilidad_cancha(cursor, datos, id_partido=None):
 
     cursor.execute(consulta, tuple(valores))
 
-    if cursor.fetchone():
-        return "La cancha ya está ocupada en ese día y turno"
+    resultados = cursor.fetchall()
 
+    if resultados:
+        return "La cancha ya está ocupada en ese día y turno"
     return None
 
 
@@ -364,7 +385,7 @@ def crear_partido():
             datos["id_turno"],
             datos["nombre_cancha"].strip(),
             datos["id_complejo"],
-            datos.get("programado") #los partidos nuevos solo pueden ser programados
+            "programado" #los partidos nuevos solo pueden ser programados
         )
 
         cursor.execute(consulta, valores)
@@ -435,6 +456,29 @@ def modificar_partido(id_partido):
                 "error": "No se puede cambiar el partido de ese estado al nuevo estado"
             }), 409
 
+        # verificamos que el partido ya haya terminado antes de marcarlo como jugado
+        if nuevo_estado == "jugado":
+
+            cursor.execute(
+                """
+                SELECT TIMESTAMP(%s, hora_fin) <= NOW() AS horario_finalizado
+                FROM turno
+                WHERE id_turno = %s
+                """,
+                (datos["dia"], datos["id_turno"])
+            )
+
+            resultado = cursor.fetchone()
+
+            if not resultado:
+                return jsonify({
+                    "error": "No existe el turno indicado"
+                }), 404
+
+            if not resultado["horario_finalizado"]:
+                return jsonify({
+                    "error": "No se puede marcar el partido como jugado antes de que finalice su horario"
+                }), 409
         error_equipos = validar_equipos_partido(cursor, datos, id_partido)
 
         if error_equipos:

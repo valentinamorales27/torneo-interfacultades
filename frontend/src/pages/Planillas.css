@@ -1,0 +1,159 @@
+
+.planillas-page {
+  padding: 30px;
+  color: #243447;
+}
+
+.planillas-header {
+  margin-bottom: 25px;
+}
+
+.planillas-header h1 {
+  margin: 0 0 8px;
+  font-size: 28px;
+  color: white;
+}
+
+.planillas-header p {
+  margin: 0;
+  color:white;
+}
+
+.planillas-panel {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 22px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.planillas-panel h2 {
+  margin: 0 0 20px;
+  font-size: 19px;
+  color:white;
+}
+
+.planillas-panel > label {
+  display: block;
+  margin-bottom: 9px;
+  font-weight: 600;
+}
+
+.planillas-panel select,
+.planillas-form input,
+.planillas-form select {
+  min-height: 40px;
+  padding: 9px 12px;
+  border: 1px solid #d5dce5;
+  border-radius: 7px;
+  font: inherit;
+  background: white;
+}
+
+.planillas-panel > select {
+  width: 100%;
+  max-width: 550px;
+}
+
+.planillas-form {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.planillas-form input,
+.planillas-form select {
+  flex: 1;
+  min-width: 150px;
+}
+
+.planillas-form button,
+.planillas-boton {
+  border: none;
+  border-radius: 7px;
+  padding: 10px 16px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+}
+
+.planillas-form button {
+  background: #176b66;
+  color: white;
+}
+
+.planillas-form button:hover {
+  background: #10544f;
+}
+
+.planillas-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.planillas-tabla-contenedor {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.planillas-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.planillas-tabla th,
+.planillas-tabla td {
+  padding: 13px 12px;
+  border-bottom: 1px solid #e8edf2;
+}
+
+.planillas-tabla th {
+  color: #536477;
+  font-size: 13px;
+  background: #f7f9fb;
+}
+
+.planillas-boton.eliminar {
+  background: #fee2e2;
+  color: #b42318;
+}
+
+.planillas-vacio {
+  color: #718096;
+  padding: 15px 0;
+}
+
+.planillas-alerta {
+  padding: 12px 16px;
+  border-radius: 7px;
+  margin-bottom: 18px;
+}
+
+.planillas-alerta.error {
+  color: #a32121;
+  background: #fde8e8;
+}
+
+.planillas-alerta.exito {
+  color: #17603a;
+  background: #e2f5e9;
+}
+
+@media (max-width: 700px) {
+  .planillas-page {
+    padding: 18px;
+  }
+
+  .planillas-panel {
+    padding: 17px;
+  }
+
+  .planillas-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

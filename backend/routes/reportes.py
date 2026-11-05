@@ -4,6 +4,7 @@ import mysql.connector
 from db import obtener_conexion
 #para agregar los permisos de usuario
 from auth import requiere_rol
+from datetime import timedelta
 
 reportes_bp = Blueprint("reportes", __name__, url_prefix="/reportes")
 
@@ -13,16 +14,22 @@ reportes_bp = Blueprint("reportes", __name__, url_prefix="/reportes")
 def ejecutar_consulta(consulta, parametros=()):
     conexion = obtener_conexion()
     cursor = conexion.cursor(dictionary=True)
+
     try:
-        #ejecutamos la consulta utilizando los parametros recibidos
         cursor.execute(consulta, parametros)
 
-        #obtenemos todos los registros encontrados
         resultados = cursor.fetchall()
 
+        # Convertimos los horarios de tipo timedelta a texto
+        # para que Flask pueda devolverlos en formato JSON.
+        for registro in resultados:
+            for clave, valor in registro.items():
+                if isinstance(valor, timedelta):
+                    registro[clave] = str(valor)
+
         return resultados
+
     finally:
-        #cerramos el cursor y la conexion al terminar
         cursor.close()
         conexion.close()
 
@@ -227,60 +234,48 @@ def obtener_fair_play(id_torneo):
 
     consulta = """
         SELECT
-            j.ci,
-            j.nombre,
-            j.apellido,
+            e.id_equipo,
             e.nombre AS equipo,
 
-            #si el jugador no tiene tarjetas, mostramos cero puntos
             CASE
-                WHEN totales.puntos_fair_play IS NULL THEN 0
-                ELSE totales.puntos_fair_play
-            END AS puntos_fair_play
-
-        FROM equipo_jugador_torneo ej
-        JOIN jugador j ON ej.ci_jugador = j.ci
-        JOIN equipo e
-            ON ej.id_equipo = e.id_equipo
-            AND ej.id_torneo = e.id_torneo
-
-        #relacionamos los jugadores con sus puntos de fair play
-        LEFT JOIN (
-            SELECT
-                pp.ci_jugador,
-                pp.id_equipo,
-                p.id_torneo,
-                #cada amarilla suma un punto y cada roja suma tres
-                SUM(
+                WHEN COUNT(t.id_tarjeta) = 0 THEN 0
+                ELSE SUM(
                     CASE
                         WHEN t.color = 'amarilla' THEN 1
                         WHEN t.color = 'roja' THEN 3
                         ELSE 0
                     END
-                ) AS puntos_fair_play
+                )
+            END AS puntos_fair_play
 
-            FROM tarjeta t
-            JOIN planilla_partido pp
-                ON t.id_partido = pp.id_partido
-                AND t.ci_jugador = pp.ci_jugador
+        FROM equipo e
 
-            JOIN partido p ON t.id_partido = p.id_partido
-            WHERE p.id_torneo = %s
+        LEFT JOIN equipo_jugador_torneo ej
+            ON e.id_equipo = ej.id_equipo
+            AND e.id_torneo = ej.id_torneo
+
+        LEFT JOIN planilla_partido pp
+            ON ej.ci_jugador = pp.ci_jugador
+            AND ej.id_equipo = pp.id_equipo
+
+        LEFT JOIN partido p
+            ON pp.id_partido = p.id_partido
+            AND p.id_torneo = e.id_torneo
             AND p.estado = 'jugado'
-            GROUP BY pp.ci_jugador, pp.id_equipo, p.id_torneo
 
-        ) totales
-            ON ej.ci_jugador = totales.ci_jugador
-            AND ej.id_equipo = totales.id_equipo
-            AND ej.id_torneo = totales.id_torneo
+        LEFT JOIN tarjeta t
+            ON t.id_partido = p.id_partido
+            AND t.ci_jugador = pp.ci_jugador
 
-        WHERE ej.id_torneo = %s
-        #el menor puntaje representa el mejor fair play
-        ORDER BY puntos_fair_play ASC, j.apellido ASC, j.nombre ASC
+        WHERE e.id_torneo = %s
+
+        GROUP BY e.id_equipo, e.nombre
+
+        ORDER BY puntos_fair_play ASC, e.nombre ASC
     """
 
     try:
-        resultados = ejecutar_consulta(consulta, (id_torneo, id_torneo))
+        resultados = ejecutar_consulta(consulta, (id_torneo,))
         return jsonify(resultados), 200
 
     except mysql.connector.Error as error:

@@ -36,8 +36,14 @@ def validar_equipo(datos):
         if campo not in datos or datos[campo] is None:
             return f"Falta el campo obligatorio: {campo}"
 
-    if not str(datos["nombre"]).strip():
+    if not isinstance(datos["nombre"], str) or not datos["nombre"].strip():
         return "El nombre del equipo no puede estar vacío"
+
+    if not isinstance(datos["ci_capitan"], str):
+        return "La CI del capitán debe ser un texto"
+
+    if not datos["ci_capitan"].isdigit() or len(datos["ci_capitan"]) != 8:
+        return "La CI del capitán debe contener exactamente 8 dígitos"
 
     #comprobamos que los IDs sean positivos
     if not validar_id(datos["id_torneo"]):
@@ -50,8 +56,6 @@ def validar_equipo(datos):
     if not validar_id(datos["numero_camiseta_capitan"]):
         return "El número de camiseta debe ser positivo"
 
-    if not str(datos["ci_capitan"]).isdigit() or len(str(datos["ci_capitan"])) > 8:
-        return "La CI del capitán debe contener solamente números y tener hasta 8 dígitos"
 
     return None
 

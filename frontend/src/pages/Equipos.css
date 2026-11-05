@@ -1,0 +1,221 @@
+
+/* Acciones del CRUD */
+
+.jugadores-acciones,
+.partidos-acciones {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 20px;
+}
+
+.dashboard-action-button {
+  padding: 11px 17px;
+  border: none;
+  border-radius: 8px;
+  background: #087b5c;
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.dashboard-action-button:hover {
+  background: #06664d;
+}
+
+.dashboard-action-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.crud-acciones {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.crud-boton-editar,
+.crud-boton-eliminar,
+.crud-boton-cancelar {
+  padding: 7px 10px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.crud-boton-editar {
+  background: #e5f1eb;
+  color: #087b5c;
+}
+
+.crud-boton-editar:hover {
+  background: #cce5d8;
+}
+
+.crud-boton-eliminar {
+  background: #fdeaea;
+  color: #bd3434;
+}
+
+.crud-boton-eliminar:hover {
+  background: #f8d5d5;
+}
+
+.crud-boton-cancelar {
+  background: #e8edf3;
+  color: #475569;
+}
+
+.crud-boton-cancelar:hover {
+  background: #d7e0ea;
+}
+
+/* Mensajes */
+
+.crud-mensaje {
+  padding: 10px 13px;
+  margin: 12px 0;
+  border-radius: 7px;
+  background: #e5f1eb;
+  color: #087b5c;
+  font-size: 13px;
+}
+
+.crud-error {
+  margin-top: 15px;
+  color: #bd3434;
+  font-size: 13px;
+}
+
+/* Fondo oscuro del modal */
+
+.crud-modal-fondo {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+  z-index: 1000;
+}
+
+/* Ventana del formulario */
+
+.crud-modal {
+  width: 100%;
+  max-width: 650px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 26px;
+  border-radius: 14px;
+  background: white;
+  box-shadow: 0 15px 45px rgba(0, 0, 0, 0.25);
+  box-sizing: border-box;
+}
+
+/* Encabezado */
+
+.crud-modal-encabezado {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 25px;
+}
+
+.crud-modal-encabezado h3 {
+  margin: 0 0 7px;
+  color: #173e70;
+  font-size: 20px;
+}
+
+.crud-modal-encabezado p {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.crud-modal-cerrar {
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 28px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.crud-modal-cerrar:hover {
+  color: #bd3434;
+}
+
+/* Campos del formulario */
+
+.crud-formulario-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 17px;
+}
+
+.crud-formulario-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.crud-formulario-grid input,
+.crud-formulario-grid select {
+  width: 100%;
+  padding: 11px;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  background: white;
+  color: #334155;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+.crud-formulario-grid input:focus,
+.crud-formulario-grid select:focus {
+  outline: none;
+  border-color: #087b5c;
+  box-shadow: 0 0 0 2px rgba(8, 123, 92, 0.12);
+}
+
+.crud-formulario-grid input:disabled {
+  background: #e8edf3;
+  cursor: not-allowed;
+}
+
+/* Botones del formulario */
+
+.crud-formulario-acciones {
+  display: flex;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.crud-formulario-acciones button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Adaptación a celulares */
+
+@media (max-width: 600px) {
+  .crud-modal {
+    padding: 20px;
+  }
+
+  .crud-formulario-grid {
+    grid-template-columns: 1fr;
+  }
+}

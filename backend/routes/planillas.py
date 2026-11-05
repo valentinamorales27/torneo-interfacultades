@@ -37,43 +37,56 @@ def obtener_partido(cursor, id_partido):
 #verificamos si un jugador todavía tiene fechas de suspensión pendientes
 def jugador_esta_suspendido(cursor, ci_jugador, id_torneo, id_equipo, numero_fecha, id_partido):
 
-    #cuento los partidos que tuvo su equipo desde su suspención 
-    #de diferentes fases.
+    # obtenemos la cantidad total de fechas de suspensión
+    # y la fecha de inicio de la primera sanción
     consulta = """
-        SELECT s.id_sancion, s.cantidad_fechas,
-            (
-                SELECT COUNT(DISTINCT p.numero_fecha)
-                FROM partido p
-                WHERE p.id_torneo = s.id_torneo
-                AND (p.id_equipo_local = %s OR p.id_equipo_visitante = %s)
-                AND p.numero_fecha >= s.numero_fecha_inicio
-                AND p.numero_fecha <= %s
-                AND (p.estado = 'jugado' OR p.id_partido = %s)
-            ) AS fechas_cumplidas
-        FROM sancion_jugador s
-        WHERE s.ci_jugador = %s
-        AND s.id_torneo = %s
-        AND s.numero_fecha_inicio <= %s
+        SELECT
+            SUM(cantidad_fechas) AS total_sanciones,
+            MIN(numero_fecha_inicio) AS primera_fecha
+        FROM sancion_jugador
+        WHERE ci_jugador = %s
+        AND id_torneo = %s
+        AND numero_fecha_inicio <= %s
+    """
+
+    cursor.execute(
+        consulta,
+        (ci_jugador, id_torneo, numero_fecha)
+    )
+
+    sanciones = cursor.fetchone()
+
+    # si el jugador no tiene sanciones, puede jugar
+    if sanciones["total_sanciones"] is None:
+        return False
+
+    # contamos las fechas que jugó su equipo desde la primera sanción
+    consulta = """
+        SELECT COUNT(DISTINCT p.numero_fecha) AS fechas_cumplidas
+        FROM partido p
+        WHERE p.id_torneo = %s
+        AND (p.id_equipo_local = %s OR p.id_equipo_visitante = %s)
+        AND p.numero_fecha >= %s
+        AND p.numero_fecha <= %s
+        AND (p.estado = 'jugado' OR p.id_partido = %s)
     """
 
     valores = (
-        id_equipo,
-        id_equipo,
-        numero_fecha,
-        id_partido,
-        ci_jugador,
         id_torneo,
-        numero_fecha
+        id_equipo,
+        id_equipo,
+        sanciones["primera_fecha"],
+        numero_fecha,
+        id_partido
     )
 
     cursor.execute(consulta, valores)
-    sanciones = cursor.fetchall()
 
-    for sancion in sanciones:
-        if sancion["fechas_cumplidas"] <= sancion["cantidad_fechas"]:
-            return True
+    fechas_cumplidas = cursor.fetchone()["fechas_cumplidas"]
 
-    return False
+    # si todavía no cumplió todas las fechas de suspensión,
+    # el jugador sigue suspendido
+    return fechas_cumplidas <= sanciones["total_sanciones"]
 
 #obtenemos los jugadores de la planilla de un partido
 @planillas_bp.route("/<int:id_partido>/planilla", methods=["GET"])
@@ -142,10 +155,9 @@ def agregar_jugador_planilla(id_partido):
         if not partido:
             return jsonify({"error": "No existe un partido con ese identificador"}), 404
 
-        #verificamos que el partido esté jugado
-        if partido["estado"] != "jugado":
+        if partido["estado"] != "programado":
             return jsonify({
-                "error": "Solamente se pueden registrar jugadores en partidos jugados"
+                "error": "Solo se pueden modificar planillas de partidos programados"
             }), 409
 
         #verificamos que el jugador exista y pertenezca a uno de los equipos del partido

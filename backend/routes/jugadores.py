@@ -29,8 +29,8 @@ def validar_jugador(datos):
         if campo not in datos or datos[campo] is None:
             return f"Falta el campo obligatorio: {campo}"
 
-    if not str(datos["nombre"]).strip():
-        return "El nombre no puede estar vacío"
+    if not isinstance(datos["nombre"], str) or not datos["nombre"].strip():
+        return "El nombre debe ser un texto y no puede estar vacío"
 
     if not str(datos["apellido"]).strip():
         return "El apellido no puede estar vacío"

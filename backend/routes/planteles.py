@@ -18,7 +18,7 @@ def validar_ci(ci):
 
     ci = str(ci)
 
-    return ci.isdigit() and len(ci) <= 8
+    return ci.isdigit() and len(ci) == 8
 
 
 #verificamos que el equipo exista y que su torneo esté en inscripción
@@ -119,7 +119,7 @@ def agregar_jugador_plantel(id_equipo):
 
     datos = request.get_json(silent=True)
 
-    if not datos:
+    if not isinstance(datos, dict):
         return jsonify({
             "error": "Se debe enviar un JSON válido"
         }), 400
@@ -474,7 +474,7 @@ def cambiar_capitan(id_equipo):
     #si no pudo obtener los datos devuelve none no una excepción
     datos = request.get_json(silent=True)
 
-    if not datos or "ci_capitan" not in datos:
+    if not isinstance(datos, dict) or "ci_capitan" not in datos:
         return jsonify({
             "error": "Se debe enviar la CI del nuevo capitán"
         }), 400
