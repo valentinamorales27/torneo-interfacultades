@@ -1,4 +1,4 @@
-#¿Cómo levantar el frontend?
+# ¿Cómo levantar el frontend?
 - El frontend de la aplicación se hizo con React y Vite. Esta parte del proyecto es la que va a permitir interactuar con el sistema del Torneo Interfacultades de Fútbol 5.
 ### Para levantar el frontend de forma local será necesario tener instalados:
 - Git, para clonar el repositorio.
