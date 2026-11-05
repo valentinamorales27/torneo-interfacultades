@@ -25,6 +25,7 @@
   MYSQL_USER=root
   MYSQL_PASSWORD=tu_contraseña
   MYSQL_DATABASE=torneo_interfacultades
+  FRONTEND_ORIGIN=http://localhost:5173
   ```
 - Se deben reemplazar los valores por los correspondientes a la instalación local de MySQL. Si el usuario no tiene contraseña, podes dejar el valor de `MYSQL_PASSWORD` vacío.
 - Para ver si la conexión quedó establecida correctamente, ejecutar el comando `python db.py`.
