@@ -63,7 +63,11 @@ def listar_plantel(id_equipo):
 
         #verificamos que el equipo exista
         cursor.execute(
-            "SELECT id_equipo FROM equipo WHERE id_equipo = %s",
+            """
+            SELECT id_equipo, id_torneo
+            FROM equipo
+            WHERE id_equipo = %s
+            """,
             (id_equipo,)
         )
 
@@ -464,13 +468,149 @@ def quitar_jugador_plantel(id_equipo, ci):
         if conexion:
             conexion.close()
 
-##ENDPOINT QUE SE NOS OCURRIÓ APARTE
 
-#cambiamos el capitán de un equipo, pq no lo podemos borrar así nomás
-#por dependencias, así que hicimos una función para reemplazarlo por otro jugador de ese mismo plantel
+#modificamos el número de camiseta de un jugador
+@planteles_bp.route("/<int:id_equipo>/plantel/<ci>/camiseta", methods=["PUT"])
+@requiere_rol("administrador")
+def modificar_camiseta(id_equipo, ci):
+
+    datos = request.get_json(silent=True)
+
+    if not isinstance(datos, dict) or "numero_camiseta" not in datos:
+        return jsonify({
+            "error": "Se debe enviar el nuevo número de camiseta"
+        }), 400
+
+    #verificamos que el número de camiseta sea un entero positivo
+    try:
+        numero_camiseta = int(datos["numero_camiseta"])
+
+        if numero_camiseta <= 0:
+            return jsonify({
+                "error": "El número de camiseta debe ser positivo"
+            }), 400
+
+    except (ValueError, TypeError):
+        return jsonify({
+            "error": "El número de camiseta debe ser un entero"
+        }), 400
+
+    if not validar_ci(ci):
+        return jsonify({
+            "error": "La CI debe contener solamente números y tener hasta 8 dígitos"
+        }), 400
+
+    conexion = None
+    cursor = None
+
+    try:
+        conexion = obtener_conexion()
+        cursor = conexion.cursor(dictionary=True)
+
+        #verificamos que el equipo exista y que el torneo esté en inscripción
+        equipo, error_equipo = obtener_equipo_en_inscripcion(
+            cursor,
+            id_equipo
+        )
+
+        if error_equipo:
+            conexion.rollback()
+
+            if equipo is None:
+                return jsonify({
+                    "error": error_equipo
+                }), 404
+
+            return jsonify({
+                "error": error_equipo
+            }), 409
+
+        #verificamos que el jugador forme parte del plantel
+        cursor.execute(
+            """
+            SELECT ci_jugador
+            FROM equipo_jugador_torneo
+            WHERE id_equipo = %s
+            AND id_torneo = %s
+            AND ci_jugador = %s
+            """,
+            (id_equipo, equipo["id_torneo"], ci)
+        )
+
+        integrante = cursor.fetchone()
+
+        if integrante is None:
+            conexion.rollback()
+
+            return jsonify({
+                "error": "El jugador no forma parte del plantel de este equipo"
+            }), 404
+
+        #actualizamos el número de camiseta
+        cursor.execute(
+            """
+            UPDATE equipo_jugador_torneo
+            SET numero_camiseta = %s
+            WHERE id_equipo = %s
+            AND id_torneo = %s
+            AND ci_jugador = %s
+            """,
+            (
+                numero_camiseta,
+                id_equipo,
+                equipo["id_torneo"],
+                ci
+            )
+        )
+
+        conexion.commit()
+
+        return jsonify({
+            "mensaje": "Número de camiseta modificado correctamente",
+            "numero_camiseta": numero_camiseta
+        }), 200
+
+    except mysql.connector.IntegrityError as error:
+
+        if conexion:
+            conexion.rollback()
+
+        #1062 significa que el número de camiseta ya está utilizado
+        if error.errno == 1062:
+            return jsonify({
+                "error": "Ese número de camiseta ya está utilizado en el equipo"
+            }), 409
+
+        return jsonify({
+            "error": "Error de integridad de la base de datos",
+            "detalle": str(error)
+        }), 400
+
+    except mysql.connector.Error as error:
+
+        if conexion:
+            conexion.rollback()
+
+        return jsonify({
+            "error": "Error al modificar el número de camiseta",
+            "detalle": str(error)
+        }), 500
+
+    finally:
+        if cursor:
+            cursor.close()
+
+        if conexion:
+            conexion.close()
+
+
+#cambiamos el capitán de un equipo
+#primero designamos a otro integrante del plantel como capitán
+#y luego podemos quitar al capitán anterior
 @planteles_bp.route("/<int:id_equipo>/capitan", methods=["PUT"])
 @requiere_rol("administrador")
 def cambiar_capitan(id_equipo):
+
     #si no pudo obtener los datos devuelve none no una excepción
     datos = request.get_json(silent=True)
 

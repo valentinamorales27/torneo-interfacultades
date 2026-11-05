@@ -1,4 +1,3 @@
-
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router'
 
 import Login from './pages/Login'
@@ -7,6 +6,7 @@ import DashboardLayout from './components/DashboardLayout'
 
 import TablaPosiciones from './pages/TablaPosiciones'
 import Equipos from './pages/Equipos'
+import Planteles from './pages/Planteles'
 import Jugadores from './pages/Jugadores'
 import Partidos from './pages/Partidos'
 import TablaGoleadores from './pages/TablaGoleadores'
@@ -24,6 +24,7 @@ function App() {
           <Route path="/inicio" element={<Dashboard />} />
           <Route path="/tabla-posiciones" element={<TablaPosiciones />} />
           <Route path="/equipos" element={<Equipos />} />
+          <Route path="/planteles" element={<Planteles />} />
           <Route path="/jugadores" element={<Jugadores />} />
           <Route path="/partidos" element={<Partidos />} />
           <Route path="/tabla-goleadores" element={<TablaGoleadores />} />

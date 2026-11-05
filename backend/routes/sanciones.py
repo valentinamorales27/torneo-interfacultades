@@ -1,3 +1,4 @@
+
 from flask import Blueprint, request, jsonify
 import mysql.connector
 from db import obtener_conexion
@@ -17,10 +18,17 @@ def validar_ci(ci):
     return True
 
 
-#obtenemos todas las sanciones
+#obtenemos las sanciones de un torneo
 @sanciones_bp.route("/", methods=["GET"])
 @requiere_rol("administrador")
 def obtener_sanciones():
+
+    id_torneo = request.args.get("id_torneo")
+
+    if not id_torneo or not id_torneo.isdigit() or int(id_torneo) <= 0:
+        return jsonify({
+            "error": "Se debe indicar un identificador de torneo válido"
+        }), 400
 
     conexion = obtener_conexion()
     cursor = conexion.cursor(dictionary=True)
@@ -36,8 +44,10 @@ def obtener_sanciones():
             FROM sancion_jugador s
             JOIN jugador j ON s.ci_jugador = j.ci
             JOIN torneo t ON s.id_torneo = t.id_torneo
-            ORDER BY s.id_torneo, s.numero_fecha_inicio
-            """
+            WHERE s.id_torneo = %s
+            ORDER BY s.numero_fecha_inicio
+            """,
+            (int(id_torneo),)
         )
 
         sanciones = cursor.fetchall()
@@ -185,6 +195,60 @@ def agregar_sancion_disciplinaria():
                 "error": "El jugador o el torneo indicado no existe"
             }), 404
 
+        return jsonify({"error": str(error)}), 500
+
+    finally:
+        cursor.close()
+        conexion.close()
+
+
+#eliminamos una sancion disciplinaria
+#las sanciones automaticas se deben corregir eliminando la tarjeta que las genero
+@sanciones_bp.route("/<int:id_sancion>", methods=["DELETE"])
+@requiere_rol("administrador")
+def eliminar_sancion(id_sancion):
+
+    conexion = obtener_conexion()
+    cursor = conexion.cursor(dictionary=True)
+
+    try:
+        #buscamos la sancion
+        cursor.execute(
+            """
+            SELECT motivo
+            FROM sancion_jugador
+            WHERE id_sancion = %s
+            """,
+            (id_sancion,)
+        )
+
+        sancion = cursor.fetchone()
+
+        if not sancion:
+            return jsonify({"error": "No existe una sanción con ese identificador"}), 404
+
+        #solo permitimos eliminar sanciones disciplinarias
+        if sancion["motivo"] != "disciplinaria":
+            return jsonify({
+                "error": "Las sanciones automáticas no se pueden eliminar directamente. Se debe corregir la tarjeta que las generó."
+            }), 403
+
+        cursor.execute(
+            """
+            DELETE FROM sancion_jugador
+            WHERE id_sancion = %s
+            """,
+            (id_sancion,)
+        )
+
+        conexion.commit()
+
+        return jsonify({
+            "mensaje": "Sanción disciplinaria eliminada correctamente"
+        }), 200
+
+    except mysql.connector.Error as error:
+        conexion.rollback()
         return jsonify({"error": str(error)}), 500
 
     finally:

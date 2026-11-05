@@ -1,0 +1,256 @@
+
+.planteles-pagina {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.planteles-encabezado h2 {
+  margin: 0 0 6px;
+  color:white
+}
+
+.planteles-encabezado p {
+  margin: 0;
+  color:white;
+}
+
+.planteles-panel {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 22px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+.planteles-panel-encabezado {
+  margin-bottom: 18px;
+}
+
+.planteles-panel-encabezado h3 {
+  margin: 0 0 6px;
+  color: #1e293b;
+}
+
+.planteles-panel-encabezado p {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.planteles-selector {
+  width: 100%;
+  max-width: 500px;
+  padding: 11px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  background: white;
+  font-size: 14px;
+}
+
+.planteles-resumen {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.planteles-resumen div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.planteles-resumen small {
+  color: #64748b;
+}
+
+.planteles-resumen strong,
+.planteles-resumen h3 {
+  margin: 0;
+  color: #1e293b;
+}
+
+.planteles-tabla-contenedor {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.planteles-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 14px;
+}
+
+.planteles-tabla th,
+.planteles-tabla td {
+  padding: 13px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.planteles-tabla th {
+  color: #475569;
+  background: #f8fafc;
+  font-weight: 600;
+}
+
+.planteles-tabla td {
+  color: #334155;
+}
+
+.planteles-camiseta {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.planteles-camiseta input {
+  width: 65px;
+  padding: 7px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+}
+
+.planteles-boton-guardar,
+.planteles-boton-secundario,
+.planteles-boton-eliminar,
+.planteles-boton-agregar {
+  border: none;
+  border-radius: 6px;
+  padding: 8px 11px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.planteles-boton-guardar {
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+.planteles-boton-guardar:hover {
+  background: #bfdbfe;
+}
+
+.planteles-boton-secundario {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.planteles-boton-secundario:hover {
+  background: #bbf7d0;
+}
+
+.planteles-boton-eliminar {
+  color: #b91c1c;
+  background: #fee2e2;
+}
+
+.planteles-boton-eliminar:hover {
+  background: #fecaca;
+}
+
+.planteles-boton-agregar {
+  color: white;
+  background: #2563eb;
+  padding: 11px 18px;
+}
+
+.planteles-boton-agregar:hover {
+  background: #1d4ed8;
+}
+
+.planteles-boton-guardar:disabled,
+.planteles-boton-secundario:disabled,
+.planteles-boton-eliminar:disabled,
+.planteles-boton-agregar:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.planteles-etiqueta-capitan {
+  display: inline-block;
+  padding: 5px 9px;
+  border-radius: 20px;
+  color: #166534;
+  background: #dcfce7;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.planteles-formulario {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.planteles-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 200px;
+}
+
+.planteles-campo label {
+  color: #334155;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.planteles-campo input {
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  font-size: 14px;
+}
+
+.planteles-campo input:focus,
+.planteles-selector:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+
+.planteles-mensaje {
+  padding: 12px 15px;
+  border-radius: 7px;
+  font-size: 14px;
+}
+
+.planteles-error {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.planteles-exito {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.planteles-ayuda {
+  margin: 12px 0 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+@media (max-width: 800px) {
+  .planteles-resumen {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .planteles-formulario {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .planteles-campo {
+    width: 100%;
+  }
+
+  .planteles-boton-agregar {
+    align-self: flex-start;
+  }
+}

@@ -37,7 +37,7 @@ CORS(
     supports_credentials=True
 )
 
-# Importamos las rutas de todos los archivos de routes
+#importamos las rutas de todos los archivos de routes
 from routes.jugadores import jugadores_bp
 from routes.equipos import equipos_bp
 from routes.canchas import canchas_bp
@@ -50,8 +50,9 @@ from routes.planteles import planteles_bp
 from routes.tarjetas import tarjetas_bp
 from routes.reportes import reportes_bp
 from routes.login import login_bp
+from routes.torneos import torneos_bp
 
-# Registramos las rutas
+#registramos las rutas
 app.register_blueprint(jugadores_bp)
 app.register_blueprint(equipos_bp)
 app.register_blueprint(canchas_bp)
@@ -64,6 +65,7 @@ app.register_blueprint(planteles_bp)
 app.register_blueprint(tarjetas_bp)
 app.register_blueprint(reportes_bp)
 app.register_blueprint(login_bp)
+app.register_blueprint(torneos_bp)
 
 
 @app.route("/")

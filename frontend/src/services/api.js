@@ -40,9 +40,25 @@ export async function cerrarSesion() {
   return solicitarAPI('/logout', { method: 'POST' }, 'No se pudo cerrar sesion.')
 }
 
+//torneos
+export async function obtenerTorneos() {
+  return solicitarAPI('/torneos/', { method: 'GET' }, 'No se pudieron obtener los torneos.')
+}
+
+export async function obtenerTorneo(idTorneo) {
+  return solicitarAPI(`/torneos/${idTorneo}`, { method: 'GET' }, 'No se pudo obtener el torneo.')
+}
+
+export async function crearTorneo(torneo) {
+  return solicitarAPI('/torneos/', {
+    method: 'POST',
+    body: JSON.stringify(torneo)
+  }, 'No se pudo crear el torneo.')
+}
+
 //equipos
-export async function obtenerEquipos() {
-  return solicitarAPI('/equipos', { method: 'GET' }, 'No se pudieron obtener los equipos.')
+export async function obtenerEquipos(idTorneo) {
+  return solicitarAPI(`/equipos?id_torneo=${idTorneo}`, { method: 'GET' }, 'No se pudieron obtener los equipos.')
 }
 
 export async function obtenerEquipo(idEquipo) {
@@ -67,28 +83,6 @@ export async function eliminarEquipo(idEquipo) {
   return solicitarAPI(`/equipos/${idEquipo}`, { method: 'DELETE' }, 'No se pudo eliminar el equipo.')
 }
 
-//planteles
-export async function obtenerPlantel(idEquipo) {
-  return solicitarAPI(`/equipos/${idEquipo}/plantel`, { method: 'GET' }, 'No se pudo obtener el plantel.')
-}
-
-export async function agregarJugadorPlantel(idEquipo, integrante) {
-  return solicitarAPI(`/equipos/${idEquipo}/plantel`, {
-    method: 'POST',
-    body: JSON.stringify(integrante)
-  }, 'No se pudo agregar el jugador al plantel.')
-}
-
-export async function quitarJugadorPlantel(idEquipo, ciJugador) {
-  return solicitarAPI(`/equipos/${idEquipo}/plantel/${ciJugador}`, { method: 'DELETE' }, 'No se pudo quitar el jugador.')
-}
-
-export async function cambiarCapitan(idEquipo, ciCapitan) {
-  return solicitarAPI(`/equipos/${idEquipo}/capitan`, {
-    method: 'PUT',
-    body: JSON.stringify({ ci_capitan: ciCapitan })
-  }, 'No se pudo cambiar el capitan.')
-}
 
 //jugadores
 export async function obtenerJugadores() {
@@ -118,12 +112,13 @@ export async function eliminarJugador(ci) {
 }
 
 //partidos
-export async function obtenerPartidos() {
-  return solicitarAPI('/partidos/', { method: 'GET' }, 'No se pudieron obtener los partidos.')
+export async function obtenerPartidos(idTorneo) {
+  return solicitarAPI(`/partidos/torneo/${idTorneo}`, { method: 'GET' }, 'No se pudieron obtener los partidos.')
 }
 
+//mantenemos esta funcion para no tener que cambiar los lugares que ya la utilizan
 export async function obtenerPartidosTorneo(idTorneo) {
-  return solicitarAPI(`/partidos/torneo/${idTorneo}`, { method: 'GET' }, 'No se pudieron obtener los partidos.')
+  return obtenerPartidos(idTorneo)
 }
 
 export async function obtenerPartido(idPartido) {
@@ -197,8 +192,74 @@ export async function eliminarTarjeta(idTarjeta) {
 }
 
 //sanciones
-export async function obtenerSanciones() {
-  return solicitarAPI('/sanciones/', { method: 'GET' }, 'No se pudieron obtener las sanciones.')
+export async function obtenerSanciones(idTorneo) {
+  return solicitarAPI(`/sanciones/?id_torneo=${idTorneo}`, { method: 'GET' }, 'No se pudieron obtener las sanciones.')
+}
+//obtenemos todas las facultades
+export async function obtenerFacultades() {
+  return solicitarAPI('/equipos/facultades', { method: 'GET' }, 'No se pudieron obtener las facultades.')
+}
+//consultamos los datos de la sesion iniciada
+export async function consultarSesion() {
+  return solicitarAPI('/sesion', { method: 'GET' }, 'No se pudo consultar la sesion.')
+}
+
+//obtenemos los integrantes de un equipo
+export async function obtenerPlantel(idEquipo) {
+  return solicitarAPI(
+    `/equipos/${idEquipo}/plantel`,
+    { method: 'GET' },
+    'No se pudo obtener el plantel.'
+  )
+}
+
+//agregamos un jugador al plantel
+export async function agregarJugadorPlantel(idEquipo, jugador) {
+  return solicitarAPI(
+    `/equipos/${idEquipo}/plantel`,
+    {
+      method: 'POST',
+      body: JSON.stringify(jugador)
+    },
+    'No se pudo agregar el jugador al plantel.'
+  )
+}
+
+//quitamos un jugador del plantel
+export async function quitarJugadorPlantel(idEquipo, ci) {
+  return solicitarAPI(
+    `/equipos/${idEquipo}/plantel/${ci}`,
+    { method: 'DELETE' },
+    'No se pudo quitar el jugador del plantel.'
+  )
+}
+
+//modificamos el número de camiseta
+export async function modificarCamiseta(idEquipo, ci, numeroCamiseta) {
+  return solicitarAPI(
+    `/equipos/${idEquipo}/plantel/${ci}/camiseta`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({
+        numero_camiseta: numeroCamiseta
+      })
+    },
+    'No se pudo modificar el número de camiseta.'
+  )
+}
+
+//cambiamos el capitán del equipo
+export async function cambiarCapitan(idEquipo, ci) {
+  return solicitarAPI(
+    `/equipos/${idEquipo}/capitan`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({
+        ci_capitan: ci
+      })
+    },
+    'No se pudo cambiar el capitán.'
+  )
 }
 
 export async function obtenerSancionesJugador(ciJugador) {
@@ -210,6 +271,11 @@ export async function crearSancion(sancion) {
     method: 'POST',
     body: JSON.stringify(sancion)
   }, 'No se pudo crear la sancion.')
+}
+export async function eliminarSancion(idSancion) {
+  return solicitarAPI(`/sanciones/${idSancion}`, {
+    method: 'DELETE'
+  }, 'No se pudo eliminar la sancion.')
 }
 
 //reportes
@@ -263,4 +329,21 @@ export async function obtenerProximosPartidos(idTorneo) {
 
 export async function obtenerJugadoresMasPartidos(idTorneo) {
   return obtenerReporte(`jugadores-mas-partidos/${idTorneo}`, 'No se pudo obtener el reporte de jugadores con mas partidos.')
+}
+//obtenemos todas las canchas
+export async function obtenerCanchas() {
+  return solicitarAPI(
+    '/canchas/',
+    { method: 'GET' },
+    'No se pudieron obtener las canchas.'
+  )
+}
+
+//obtenemos todos los turnos
+export async function obtenerTurnos() {
+  return solicitarAPI(
+    '/partidos/turnos',
+    { method: 'GET' },
+    'No se pudieron obtener los turnos.'
+  )
 }

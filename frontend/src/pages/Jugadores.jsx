@@ -1,5 +1,6 @@
 
 import { useEffect, useState } from 'react'
+import { useTorneo } from '../context/TorneoContext'
 
 import {
   obtenerJugadoresFacultadTipo,
@@ -13,7 +14,6 @@ import {
 
 import ReporteTabla from '../components/ReporteTabla'
 
-const ID_TORNEO = 1
 
 const FORMULARIO_VACIO = {
   ci: '',
@@ -26,6 +26,7 @@ const FORMULARIO_VACIO = {
 }
 
 function Jugadores() {
+    const {idTorneo}=useTorneo();
   const [reportes, setReportes] = useState({
     facultad: { datos: [], cargando: true, error: '' },
     sinPlanilla: { datos: [], cargando: true, error: '' },
@@ -45,15 +46,30 @@ function Jugadores() {
   const [mensaje, setMensaje] = useState('')
   const [errorFormulario, setErrorFormulario] = useState('')
 
-  // Cargar reportes
+    // Cargar reportes
   useEffect(() => {
     let activo = true
 
     async function cargarReportes() {
+      if (!idTorneo) {
+        setReportes({
+          facultad: { datos: [], cargando: false, error: '' },
+          sinPlanilla: { datos: [], cargando: false, error: '' },
+          masPartidos: { datos: [], cargando: false, error: '' }
+        })
+        return
+      }
+
+      setReportes({
+        facultad: { datos: [], cargando: true, error: '' },
+        sinPlanilla: { datos: [], cargando: true, error: '' },
+        masPartidos: { datos: [], cargando: true, error: '' }
+      })
+
       const consultas = [
-        ['facultad', obtenerJugadoresFacultadTipo(ID_TORNEO)],
-        ['sinPlanilla', obtenerJugadoresSinPlanilla(ID_TORNEO)],
-        ['masPartidos', obtenerJugadoresMasPartidos(ID_TORNEO)]
+        ['facultad', obtenerJugadoresFacultadTipo(idTorneo)],
+        ['sinPlanilla', obtenerJugadoresSinPlanilla(idTorneo)],
+        ['masPartidos', obtenerJugadoresMasPartidos(idTorneo)]
       ]
 
       const resultados = await Promise.all(
@@ -84,7 +100,7 @@ function Jugadores() {
     return () => {
       activo = false
     }
-  }, [])
+  }, [idTorneo])
 
   // Obtener todos los jugadores
   async function cargarTodosLosJugadores() {

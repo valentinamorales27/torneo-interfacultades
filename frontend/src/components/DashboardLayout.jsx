@@ -6,8 +6,11 @@ import { NavLink, Outlet, useNavigate } from 'react-router'
 
 import {
   obtenerSesion,
-  cerrarSesion
+  cerrarSesion,
+  obtenerTorneos
 } from '../services/api'
+
+import { TorneoContext } from '../context/TorneoContext'
 
 // Componente encargado de dibujar los iconos
 function Icon({ name }) {
@@ -111,6 +114,11 @@ const navegacion = [
     ruta: '/equipos'
   },
   {
+    nombre: 'Planteles',
+    icono: 'users',
+    ruta: '/planteles'
+  },
+  {
     nombre: 'Jugadores',
     icono: 'user',
     ruta: '/jugadores'
@@ -155,6 +163,11 @@ function DashboardLayout() {
   const [usuario, setUsuario] = useState(null)
   const [cargando, setCargando] = useState(true)
 
+  const [torneos, setTorneos] = useState([])
+  const [torneoSeleccionado, setTorneoSeleccionado] = useState(null)
+  const [cargandoTorneos, setCargandoTorneos] = useState(true)
+  const [errorTorneos, setErrorTorneos] = useState('')
+
   // Verificamos que exista una sesión activa
   useEffect(() => {
     async function cargarSesion() {
@@ -172,6 +185,42 @@ function DashboardLayout() {
     cargarSesion()
   }, [navegar])
 
+  // Obtenemos los torneos disponibles
+  useEffect(() => {
+    async function cargarTorneos() {
+      try {
+        setCargandoTorneos(true)
+        setErrorTorneos('')
+
+        const datos = await obtenerTorneos()
+
+        setTorneos(datos)
+
+        if (datos.length > 0) {
+          setTorneoSeleccionado(datos[0])
+        }
+      } catch (error) {
+        console.error('Error al consultar los torneos:', error)
+        setErrorTorneos(error.message)
+      } finally {
+        setCargandoTorneos(false)
+      }
+    }
+
+    cargarTorneos()
+  }, [])
+
+  // Cambiamos el torneo seleccionado
+  function manejarCambioTorneo(idTorneo) {
+    const torneo = torneos.find(
+      (item) => String(item.id_torneo) === idTorneo
+    )
+
+    if (torneo) {
+      setTorneoSeleccionado(torneo)
+    }
+  }
+
   // Cerramos la sesión
   async function manejarCerrarSesion() {
     try {
@@ -187,90 +236,134 @@ function DashboardLayout() {
   }
 
   return (
-    <main className="dashboard-page">
+    <TorneoContext.Provider
+      value={{
+        torneos,
+        torneoSeleccionado,
+        idTorneo: torneoSeleccionado?.id_torneo
+      }}
+    >
+      <main className="dashboard-page">
 
-      <header className="dashboard-header">
+        <header className="dashboard-header">
 
-        <div className="dashboard-topline">
-          <span>SISTEMA DE GESTIÓN</span>
+          <div className="dashboard-topline">
+            <span>SISTEMA DE GESTIÓN</span>
 
-          <div className="dashboard-account">
+            <div className="dashboard-account">
 
-            <div className="dashboard-user">
-              <div className="dashboard-user-icon">
-                <Icon name="user" />
+              <div className="dashboard-user">
+                <div className="dashboard-user-icon">
+                  <Icon name="user" />
+                </div>
+
+                <div>
+                  <small>Mi sesión</small>
+
+                  <strong>
+                    {usuario ? usuario.rol : 'Cargando...'}
+                  </strong>
+                </div>
               </div>
 
-              <div>
-                <small>Mi sesión</small>
+              <button
+                className="dashboard-logout"
+                onClick={manejarCerrarSesion}
+              >
+                Cerrar sesión
+              </button>
 
-                <strong>
-                  {usuario ? usuario.rol : 'Cargando...'}
-                </strong>
-              </div>
+            </div>
+          </div>
+
+          <div className="dashboard-heading">
+
+            <div className="dashboard-trophy">
+              <Icon name="trophy" />
             </div>
 
-            <button
-              className="dashboard-logout"
-              onClick={manejarCerrarSesion}
+            <div>
+              <h1>Torneo Interfacultades de Fútbol 5</h1>
+              <p>El mejor torneo de facultades del país</p>
+            </div>
+
+            <div
+              className="header-field-decoration"
+              aria-hidden="true"
             >
-              Cerrar sesión
-            </button>
+              <Icon name="ball" />
+              <div className="mini-goal" />
+            </div>
 
           </div>
-        </div>
 
-        <div className="dashboard-heading">
+          <div className="dashboard-torneo-selector">
+            <label htmlFor="selector-torneo">
+              Torneo seleccionado
+            </label>
 
-          <div className="dashboard-trophy">
-            <Icon name="trophy" />
+            {cargandoTorneos ? (
+              <span>Cargando torneos...</span>
+            ) : errorTorneos ? (
+              <span>{errorTorneos}</span>
+            ) : torneos.length === 0 ? (
+              <span>No hay torneos registrados</span>
+            ) : (
+              <select
+                id="selector-torneo"
+                value={torneoSeleccionado?.id_torneo || ''}
+                onChange={(e) => manejarCambioTorneo(e.target.value)}
+              >
+                {torneos.map((torneo) => (
+                  <option
+                    key={torneo.id_torneo}
+                    value={torneo.id_torneo}
+                  >
+                    {torneo.nombre} - {torneo.anio} ({torneo.semestre}° semestre)
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
-          <div>
-            <h1>Torneo Interfacultades de Fútbol 5</h1>
-            <p>El mejor torneo de facultades del país</p>
-          </div>
+        </header>
 
-          <div
-            className="header-field-decoration"
-            aria-hidden="true"
-          >
-            <Icon name="ball" />
-            <div className="mini-goal" />
-          </div>
+        <nav
+          className="dashboard-nav"
+          aria-label="Navegación principal"
+        >
+          {navegacion
+            .filter((item) => !item.rol || item.rol === usuario?.rol)
+            .map((item) => (
+              <NavLink
+                key={item.nombre}
+                to={item.ruta}
+                className={({ isActive }) =>
+                  `dashboard-nav-item ${isActive ? 'active' : ''}`
+                }
+              >
+                <Icon name={item.icono} />
+                {item.nombre}
+              </NavLink>
+            ))}
+        </nav>
 
-        </div>
+        {/* CONTENIDO: cambia según la página */}
+        <section className="dashboard-content">
+          {cargandoTorneos ? (
+            <p>Cargando torneos...</p>
+          ) : errorTorneos ? (
+            <p>No se pudieron cargar los torneos: {errorTorneos}</p>
+          ) : torneos.length === 0 ? (
+            <p>Primero se debe crear un torneo para utilizar el sistema.</p>
+          ) : (
+            <Outlet />
+          )}
+        </section>
 
-      </header>
-
-      <nav
-        className="dashboard-nav"
-        aria-label="Navegación principal"
-      >
-        {navegacion
-          .filter((item) => !item.rol || item.rol === usuario?.rol)
-          .map((item) => (
-            <NavLink
-              key={item.nombre}
-              to={item.ruta}
-              className={({ isActive }) =>
-                `dashboard-nav-item ${isActive ? 'active' : ''}`
-              }
-            >
-              <Icon name={item.icono} />
-              {item.nombre}
-            </NavLink>
-          ))}
-      </nav>
-
-      {/* CONTENIDO: cambia según la página */}
-      <section className="dashboard-content">
-        <Outlet />
-      </section>
-
-    </main>
+      </main>
+    </TorneoContext.Provider>
   )
 }
 
 export default DashboardLayout
-

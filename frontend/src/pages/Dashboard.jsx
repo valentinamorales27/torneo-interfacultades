@@ -2,8 +2,7 @@ import './Dashboard.css'
 import { useEffect, useState } from 'react'
 
 import { obtenerProximosPartidos } from '../services/api'
-
-const ID_TORNEO = 1
+import { useTorneo } from '../context/TorneoContext'
 
 // Componente encargado de dibujar los iconos
 function Icon({ name }) {
@@ -62,18 +61,21 @@ function formatearHora(hora) {
 
 // Página de resumen del torneo
 function Dashboard() {
+  const { idTorneo, torneoSeleccionado } = useTorneo()
+
   const [partidos, setPartidos] = useState([])
   const [cargandoPartidos, setCargandoPartidos] = useState(true)
   const [errorPartidos, setErrorPartidos] = useState('')
 
-  // Consultamos los próximos partidos
+  // Consultamos los próximos partidos del torneo seleccionado
   useEffect(() => {
     async function cargarPartidos() {
       try {
         setCargandoPartidos(true)
         setErrorPartidos('')
+        setPartidos([])
 
-        const datos = await obtenerProximosPartidos(ID_TORNEO)
+        const datos = await obtenerProximosPartidos(idTorneo)
 
         setPartidos(datos)
       } catch (error) {
@@ -84,8 +86,10 @@ function Dashboard() {
       }
     }
 
-    cargarPartidos()
-  }, [])
+    if (idTorneo) {
+      cargarPartidos()
+    }
+  }, [idTorneo])
 
   return (
     <>
@@ -97,17 +101,7 @@ function Dashboard() {
           </p>
         </div>
 
-        <div className="dashboard-actions">
-          <a href="#proximos-partidos" className="dashboard-action blue">
-            <Icon name="calendar" />
-            Ver calendario
-          </a>
-
-          <a href="#informacion-torneo" className="dashboard-action green">
-            <Icon name="users" />
-            Ver equipos
-          </a>
-        </div>
+        
       </div>
 
       <div className="dashboard-grid">
@@ -203,23 +197,36 @@ function Dashboard() {
 
           <div className="tournament-detail">
             <span className="detail-icon">
-              <Icon name="ball" />
+              <Icon name="trophy" />
             </span>
 
             <div>
-              <small>Modalidad</small>
-              <strong>Fútbol 5</strong>
+              <small>Edición</small>
+              <strong>{torneoSeleccionado?.nombre}</strong>
             </div>
           </div>
 
           <div className="tournament-detail">
             <span className="detail-icon">
-              <Icon name="users" />
+              <Icon name="calendar" />
             </span>
 
             <div>
-              <small>Participantes</small>
-              <strong>Facultades</strong>
+              <small>Período</small>
+              <strong>
+                {torneoSeleccionado?.anio} - {torneoSeleccionado?.semestre}° semestre
+              </strong>
+            </div>
+          </div>
+
+          <div className="tournament-detail">
+            <span className="detail-icon">
+              <Icon name="info" />
+            </span>
+
+            <div>
+              <small>Estado</small>
+              <strong>{torneoSeleccionado?.estado}</strong>
             </div>
           </div>
 
@@ -229,8 +236,12 @@ function Dashboard() {
             </span>
 
             <div>
-              <small>Fechas y sede</small>
-              <strong>Por confirmar</strong>
+              <small>Fechas</small>
+              <strong>
+                {formatearFecha(torneoSeleccionado?.fecha_inicio)}
+                {' - '}
+                {formatearFecha(torneoSeleccionado?.fecha_fin)}
+              </strong>
             </div>
           </div>
         </section>

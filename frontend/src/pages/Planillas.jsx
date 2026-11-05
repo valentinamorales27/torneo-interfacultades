@@ -13,8 +13,10 @@ import {
   eliminarTarjeta
 } from '../services/api'
 import './Planillas.css'
+import { useTorneo } from '../context/TorneoContext'
 
 function Planillas() {
+  const { idTorneo } = useTorneo()
   const [partidos, setPartidos] = useState([])
   const [idPartido, setIdPartido] = useState('')
   const [planilla, setPlanilla] = useState([])
@@ -34,10 +36,38 @@ function Planillas() {
   const [error, setError] = useState('')
   const [mensaje, setMensaje] = useState('')
 
+  // Cargar los partidos del torneo seleccionado
   useEffect(() => {
-    cargarPartidos()
-  }, [])
+    async function cargarPartidos() {
+      if (!idTorneo) {
+        setPartidos([])
+        setIdPartido('')
+        setPlanilla([])
+        setGoles([])
+        setTarjetas([])
+        return
+      }
 
+      try {
+        setError('')
+        setPartidos([])
+        setIdPartido('')
+        setPlanilla([])
+        setGoles([])
+        setTarjetas([])
+
+        const datos = await obtenerPartidos(idTorneo)
+
+        setPartidos(Array.isArray(datos) ? datos : datos.partidos || [])
+      } catch (error) {
+        setError(error.message)
+      }
+    }
+
+    cargarPartidos()
+  }, [idTorneo])
+
+  // Cargar la información del partido seleccionado
   useEffect(() => {
     if (idPartido) {
       cargarDatosPartido()

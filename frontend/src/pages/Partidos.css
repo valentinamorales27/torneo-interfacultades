@@ -1,0 +1,231 @@
+
+.partidos-acciones {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+
+.partidos-panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.partidos-boton-principal,
+.partidos-boton-secundario,
+.partidos-boton-editar,
+.partidos-boton-eliminar {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.partidos-boton-principal {
+  background: #2563eb;
+  color: white;
+}
+
+.partidos-boton-secundario {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.partidos-boton-editar {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.partidos-boton-eliminar {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.partidos-boton-principal:hover,
+.partidos-boton-secundario:hover,
+.partidos-boton-editar:hover,
+.partidos-boton-eliminar:hover {
+  opacity: 0.8;
+}
+
+.partidos-boton-principal:disabled,
+.partidos-boton-secundario:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.partidos-formulario {
+  margin: 20px 0;
+  padding: 24px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #f9fafb;
+}
+
+.partidos-formulario h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+}
+
+.partidos-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.partidos-form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.partidos-form-grid input,
+.partidos-form-grid select {
+  width: 100%;
+  min-height: 42px;
+  padding: 9px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 7px;
+  background: white;
+  color: #111827;
+  font: inherit;
+  font-weight: 400;
+}
+
+.partidos-form-grid input:focus,
+.partidos-form-grid select:focus {
+  outline: 2px solid #93c5fd;
+  border-color: #2563eb;
+}
+
+.partidos-form-acciones {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.partidos-tabla-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.partidos-error {
+  margin: 12px 0;
+  color: #b91c1c;
+  font-size: 14px;
+}
+
+.partidos-exito {
+  margin: 12px 0;
+  color: #15803d;
+  font-size: 14px;
+}
+
+@media (max-width: 700px) {
+  .partidos-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .partidos-formulario {
+    padding: 16px;
+  }
+
+  .partidos-form-acciones {
+    flex-direction: column;
+  }
+
+  .partidos-form-acciones button {
+    width: 100%;
+  }
+}
+
+/* Fondo oscuro del modal */
+.partidos-modal-fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+/* Ventana del modal */
+.partidos-modal {
+  background: white;
+  width: 100%;
+  max-width: 750px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 28px;
+  border-radius: 14px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+}
+
+/* Encabezado del modal */
+.partidos-modal-encabezado {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 15px;
+  margin-bottom: 24px;
+}
+
+.partidos-modal-encabezado h3 {
+  margin: 0 0 6px;
+}
+
+.partidos-modal-encabezado p {
+  margin: 0;
+  color: #777;
+  font-size: 14px;
+}
+
+/* Botón para cerrar */
+.partidos-modal-cerrar {
+  border: none;
+  background: transparent;
+  font-size: 30px;
+  line-height: 1;
+  cursor: pointer;
+  color: #666;
+  padding: 0 5px;
+}
+
+.partidos-modal-cerrar:hover {
+  color: #222;
+}
+
+/* Espaciado del formulario */
+.partidos-modal .partidos-form-grid {
+  margin-bottom: 24px;
+}
+
+.partidos-modal .partidos-form-acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Adaptación a pantallas pequeñas */
+@media (max-width: 600px) {
+  .partidos-modal {
+    padding: 20px;
+  }
+
+  .partidos-modal .partidos-form-grid {
+    grid-template-columns: 1fr;
+  }
+}

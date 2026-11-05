@@ -56,14 +56,13 @@ def validar_equipo(datos):
     if not validar_id(datos["numero_camiseta_capitan"]):
         return "El número de camiseta debe ser positivo"
 
-
     return None
 
 
-#obtenemos todos los equipos registrados
-@equipos_bp.route("", methods=["GET"])
-@requiere_rol("administrador", "planillero")
-def listar_equipos():
+#obtenemos todas las facultades para el formulario de equipos
+@equipos_bp.route("/facultades", methods=["GET"])
+@requiere_rol("administrador")
+def listar_facultades():
 
     conexion = None
     cursor = None
@@ -72,13 +71,56 @@ def listar_equipos():
         conexion = obtener_conexion()
         cursor = conexion.cursor(dictionary=True)
 
-        #consultamos los equipos junto con el nombre del torneo y de la facultad
+        cursor.execute("""
+            SELECT id_facultad, nombre
+            FROM facultad
+            ORDER BY nombre
+        """)
+
+        facultades = cursor.fetchall()
+
+        return jsonify(facultades), 200
+
+    except mysql.connector.Error as error:
+        return jsonify({
+            "error": "Error al obtener las facultades",
+            "detalle": str(error)
+        }), 500
+
+    finally:
+        if cursor:
+            cursor.close()
+        if conexion:
+            conexion.close()
+
+
+#obtenemos los equipos de un torneo
+@equipos_bp.route("", methods=["GET"])
+@requiere_rol("administrador", "planillero")
+def listar_equipos():
+
+    conexion = None
+    cursor = None
+
+    try:
+        id_torneo = request.args.get("id_torneo")
+
+        #verificamos que se haya indicado un torneo válido
+        if not id_torneo or not id_torneo.isdigit() or int(id_torneo) <= 0:
+            return jsonify({
+                "error": "Se debe indicar un identificador de torneo válido"
+            }), 400
+
+        conexion = obtener_conexion()
+        cursor = conexion.cursor(dictionary=True)
+
         sql = """
             SELECT
                 e.id_equipo,
                 e.nombre,
                 e.id_torneo,
                 t.nombre AS torneo,
+                t.estado AS estado_torneo,
                 e.id_facultad,
                 f.nombre AS facultad,
                 e.ci_capitan,
@@ -88,10 +130,11 @@ def listar_equipos():
             JOIN torneo t ON e.id_torneo = t.id_torneo
             JOIN facultad f ON e.id_facultad = f.id_facultad
             JOIN jugador j ON e.ci_capitan = j.ci
+            WHERE e.id_torneo = %s
             ORDER BY e.nombre
         """
 
-        cursor.execute(sql)
+        cursor.execute(sql, (int(id_torneo),))
         equipos = cursor.fetchall()
 
         return jsonify(equipos), 200
@@ -105,7 +148,6 @@ def listar_equipos():
     finally:
         if cursor:
             cursor.close()
-
         if conexion:
             conexion.close()
 
@@ -212,6 +254,23 @@ def crear_equipo():
         if torneo["estado"] != "inscripción":
             return jsonify({
                 "error": "Solo se pueden crear equipos durante la inscripción"
+            }), 400
+
+        #verificamos que la facultad exista
+        cursor.execute(
+            """
+            SELECT id_facultad
+            FROM facultad
+            WHERE id_facultad = %s
+            """,
+            (int(datos["id_facultad"]),)
+        )
+
+        facultad = cursor.fetchone()
+
+        if facultad is None:
+            return jsonify({
+                "error": "La facultad seleccionada no existe"
             }), 400
 
         #verificamos que el capitán exista y que pertenezca a la facultad del equipo
@@ -367,7 +426,7 @@ def modificar_equipo(id_equipo):
             return jsonify({
                 "error": "No se encontró un equipo con ese ID"
             }), 404
-        #VERIFICACIÓN DEL ESTADO DEL TORNEO
+
         #los equipos solo se pueden modificar durante la inscripción
         if equipo["estado"] != "inscripción":
             return jsonify({

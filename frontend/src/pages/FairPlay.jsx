@@ -6,11 +6,13 @@ import {
   obtenerSancionesEquipo
 } from '../services/api'
 
+import { useTorneo } from '../context/TorneoContext'
+
 import ReporteTabla from '../components/ReporteTabla'
 
-const ID_TORNEO = 1
-
 function FairPlay() {
+  const { idTorneo } = useTorneo()
+
   const [reportes, setReportes] = useState({
     fairPlay: { datos: [], cargando: true, error: '' },
     sanciones: { datos: [], cargando: true, error: '' }
@@ -20,9 +22,22 @@ function FairPlay() {
     let activo = true
 
     async function cargarReportes() {
+      if (!idTorneo) {
+        setReportes({
+          fairPlay: { datos: [], cargando: false, error: '' },
+          sanciones: { datos: [], cargando: false, error: '' }
+        })
+        return
+      }
+
+      setReportes({
+        fairPlay: { datos: [], cargando: true, error: '' },
+        sanciones: { datos: [], cargando: true, error: '' }
+      })
+
       const consultas = [
-        ['fairPlay', obtenerFairPlay(ID_TORNEO)],
-        ['sanciones', obtenerSancionesEquipo(ID_TORNEO)]
+        ['fairPlay', obtenerFairPlay(idTorneo)],
+        ['sanciones', obtenerSancionesEquipo(idTorneo)]
       ]
 
       const resultados = await Promise.all(
@@ -32,7 +47,11 @@ function FairPlay() {
 
             return [
               nombre,
-              { datos, cargando: false, error: '' }
+              {
+                datos: Array.isArray(datos) ? datos : [],
+                cargando: false,
+                error: ''
+              }
             ]
           } catch (error) {
             return [
@@ -53,7 +72,7 @@ function FairPlay() {
     return () => {
       activo = false
     }
-  }, [])
+  }, [idTorneo])
 
   return (
     <>

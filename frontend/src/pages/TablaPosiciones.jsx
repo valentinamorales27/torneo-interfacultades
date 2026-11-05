@@ -1,25 +1,34 @@
+
 import './TablaPosiciones.css'
 
 import { useEffect, useState } from 'react'
 import { obtenerTablaPosiciones } from '../services/api'
-
-const ID_TORNEO = 1
+import { useTorneo } from '../context/TorneoContext'
 
 function TablaPosiciones() {
+  const { idTorneo } = useTorneo()
+
   const [tablaPosiciones, setTablaPosiciones] = useState([])
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState('')
 
-  // Consultamos la tabla de posiciones
+  // Consultamos la tabla de posiciones del torneo seleccionado
   useEffect(() => {
     async function cargarTabla() {
+      if (!idTorneo) {
+        setTablaPosiciones([])
+        setCargando(false)
+        return
+      }
+
       try {
         setCargando(true)
         setError('')
+        setTablaPosiciones([])
 
-        const datos = await obtenerTablaPosiciones(ID_TORNEO)
+        const datos = await obtenerTablaPosiciones(idTorneo)
 
-        setTablaPosiciones(datos)
+        setTablaPosiciones(Array.isArray(datos) ? datos : [])
       } catch (error) {
         console.error('Error al consultar la tabla:', error)
         setError(error.message)
@@ -29,7 +38,7 @@ function TablaPosiciones() {
     }
 
     cargarTabla()
-  }, [])
+  }, [idTorneo])
 
   return (
     <>
@@ -55,7 +64,7 @@ function TablaPosiciones() {
               aria-hidden="true"
             >
               <path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z" />
-              <path d="M7 6H4v3a4 4 0 0 0 4 4M17 6h3v3a4 4 0 0 1-4 4" />
+              <path d="M7 6H4v3a4 4 0 0 0 4 4M17 6h3v3a4 4 0 0 0-4 4" />
             </svg>
           </span>
 

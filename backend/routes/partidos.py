@@ -84,7 +84,30 @@ def validar_partido(datos):
         return "El estado del partido no es válido"
 
     return None
+#verificamos que la fecha del partido esté dentro del período del torneo
+def validar_fecha_torneo(cursor, id_torneo, dia):
 
+    cursor.execute(
+        """
+        SELECT fecha_inicio, fecha_fin
+        FROM torneo
+        WHERE id_torneo = %s
+        """,
+        (id_torneo,)
+    )
+
+    torneo = cursor.fetchone()
+
+    if torneo is None:
+        return "No existe un torneo con ese identificador"
+
+    if dia < torneo["fecha_inicio"].strftime("%Y-%m-%d"):
+        return "La fecha del partido no puede ser anterior al inicio del torneo"
+
+    if dia > torneo["fecha_fin"].strftime("%Y-%m-%d"):
+        return "La fecha del partido no puede ser posterior al fin del torneo"
+
+    return None
 
 #validamos que los equipos puedan disputar el partido
 def validar_equipos_partido(cursor, datos, id_partido=None):
@@ -232,40 +255,6 @@ def validar_disponibilidad_cancha(cursor, datos, id_partido=None):
     return None
 
 
-#obtenemos todos los partidos
-@partidos_bp.route("/", methods=["GET"])
-@requiere_rol("administrador", "planillero")
-def obtener_partidos():
-
-    conexion = obtener_conexion()
-    cursor = conexion.cursor(dictionary=True)
-
-    try:
-        consulta = """
-            SELECT p.id_partido, p.id_torneo, p.numero_fecha, p.dia,
-                   p.id_equipo_local, el.nombre AS equipo_local,
-                   p.id_equipo_visitante, ev.nombre AS equipo_visitante,
-                   p.id_turno, p.nombre_cancha, p.id_complejo,
-                   p.estado
-            FROM partido p
-            JOIN equipo el ON p.id_equipo_local = el.id_equipo
-            JOIN equipo ev ON p.id_equipo_visitante = ev.id_equipo
-            ORDER BY p.id_torneo, p.numero_fecha, p.dia
-        """
-
-        cursor.execute(consulta)
-        partidos = cursor.fetchall()
-
-        return jsonify(partidos), 200
-
-    except mysql.connector.Error as error:
-        return jsonify({"error": str(error)}), 500
-
-    finally:
-        cursor.close()
-        conexion.close()
-
-
 #obtenemos los partidos de un torneo
 @partidos_bp.route("/torneo/<int:id_torneo>", methods=["GET"])
 @requiere_rol("administrador", "planillero")
@@ -357,6 +346,15 @@ def crear_partido():
     cursor = conexion.cursor(dictionary=True)
 
     try:
+        error_fecha = validar_fecha_torneo(
+            cursor,
+            datos["id_torneo"],
+            datos["dia"]
+        )
+
+        if error_fecha:
+            return jsonify({"error": error_fecha}), 400
+    
         error_equipos = validar_equipos_partido(cursor, datos)
 
         if error_equipos:
@@ -440,6 +438,12 @@ def modificar_partido(id_partido):
         if not partido_actual:
             return jsonify({"error": "No existe un partido con ese identificador"}), 404
 
+        #no permitimos modificar partidos jugados o cancelados
+        if partido_actual["estado"] in ["jugado", "cancelado"]:
+            return jsonify({
+                "error": "No se pueden modificar partidos jugados o cancelados"
+            }), 409
+
         #verificamos que el estado del partido pueda modificarse
         estado_actual = partido_actual["estado"]
         nuevo_estado = datos.get("estado", estado_actual)
@@ -483,6 +487,15 @@ def modificar_partido(id_partido):
 
         if error_equipos:
             return jsonify({"error": error_equipos}), 409
+
+        error_fecha = validar_fecha_torneo(
+            cursor,
+            datos["id_torneo"],
+            datos["dia"]
+        )
+
+        if error_fecha:
+            return jsonify({"error": error_fecha}), 400
 
         error_cancha = validar_disponibilidad_cancha(cursor, datos, id_partido)
 
@@ -578,6 +591,35 @@ def eliminar_partido(id_partido):
                 "error": "No se puede eliminar el partido porque tiene registros asociados"
             }), 409
 
+        return jsonify({"error": str(error)}), 500
+
+    finally:
+        cursor.close()
+        conexion.close()
+#esta consulta la creamos solo para poder poner esto en el front, el listado de turnos
+#obtenemos todos los turnos disponibles
+@partidos_bp.route("/turnos", methods=["GET"])
+@requiere_rol("administrador", "planillero")
+def obtener_turnos():
+
+    conexion = obtener_conexion()
+    cursor = conexion.cursor(dictionary=True)
+
+    try:
+        cursor.execute("""
+            SELECT
+                id_turno,
+                TIME_FORMAT(hora_inicio, '%H:%i') AS hora_inicio,
+                TIME_FORMAT(hora_fin, '%H:%i') AS hora_fin
+            FROM turno
+            ORDER BY hora_inicio
+        """)
+
+        turnos = cursor.fetchall()
+
+        return jsonify(turnos), 200
+
+    except mysql.connector.Error as error:
         return jsonify({"error": str(error)}), 500
 
     finally:

@@ -1,12 +1,14 @@
 
 import { useEffect, useState } from 'react'
-import { obtenerSanciones, crearSancion } from '../services/api'
+import { obtenerSanciones, crearSancion, eliminarSancion } from '../services/api'
+import { useTorneo } from '../context/TorneoContext'
 import './Sanciones.css'
 
 function Sanciones() {
+  const { idTorneo } = useTorneo()
+
   const [sanciones, setSanciones] = useState([])
   const [ciJugador, setCiJugador] = useState('')
-  const [idTorneo, setIdTorneo] = useState('1')
   const [numeroFecha, setNumeroFecha] = useState('')
   const [cantidadFechas, setCantidadFechas] = useState('1')
   const [error, setError] = useState('')
@@ -15,13 +17,19 @@ function Sanciones() {
 
   useEffect(() => {
     cargarSanciones()
-  }, [])
+  }, [idTorneo])
 
   async function cargarSanciones() {
+    if (!idTorneo) {
+      setSanciones([])
+      return
+    }
+
     try {
       setCargando(true)
       setError('')
-      const datos = await obtenerSanciones()
+
+      const datos = await obtenerSanciones(idTorneo)
       setSanciones(Array.isArray(datos) ? datos : datos.sanciones || [])
     } catch (error) {
       setError(error.message)
@@ -54,6 +62,32 @@ function Sanciones() {
     }
   }
 
+  async function handleEliminarSancion(idSancion) {
+    const confirmar = window.confirm('¿Seguro que querés eliminar esta sanción disciplinaria?')
+
+    if (!confirmar) return
+
+    try {
+      setError('')
+      setMensaje('')
+
+      await eliminarSancion(idSancion)
+
+      setMensaje('Sanción eliminada correctamente.')
+      await cargarSanciones()
+    } catch (error) {
+      setError(error.message)
+    }
+  }
+
+  function obtenerMotivo(motivo) {
+    if (motivo === 'roja') return 'Tarjeta roja'
+    if (motivo === 'acumulación de amarillas') return 'Acumulación de 3 amarillas'
+    if (motivo === 'disciplinaria') return 'Disciplinaria'
+
+    return motivo
+  }
+
   return (
     <div className="sanciones-page">
       <div className="sanciones-header">
@@ -82,17 +116,6 @@ function Sanciones() {
           </div>
 
           <div>
-            <label>ID del torneo</label>
-            <input
-              type="number"
-              min="1"
-              value={idTorneo}
-              onChange={(e) => setIdTorneo(e.target.value)}
-              required
-            />
-          </div>
-
-          <div>
             <label>Fecha desde la que se aplica</label>
             <input
               type="number"
@@ -115,7 +138,9 @@ function Sanciones() {
             />
           </div>
 
-          <button type="submit">Registrar sanción</button>
+          <button type="submit" disabled={!idTorneo}>
+            Registrar sanción
+          </button>
         </form>
       </section>
 
@@ -138,8 +163,10 @@ function Sanciones() {
                   <th>Cédula</th>
                   <th>Torneo</th>
                   <th>Motivo</th>
+                  <th>Tipo</th>
                   <th>Fecha de inicio</th>
                   <th>Fechas</th>
+                  <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -148,9 +175,24 @@ function Sanciones() {
                     <td>{sancion.nombre} {sancion.apellido}</td>
                     <td>{sancion.ci_jugador}</td>
                     <td>{sancion.nombre_torneo || sancion.id_torneo}</td>
-                    <td>{sancion.motivo}</td>
+                    <td>{obtenerMotivo(sancion.motivo)}</td>
+                    <td>
+                      {sancion.motivo === 'disciplinaria' ? 'Manual' : 'Automática'}
+                    </td>
                     <td>{sancion.numero_fecha_inicio}</td>
                     <td>{sancion.cantidad_fechas}</td>
+                    <td>
+                      {sancion.motivo === 'disciplinaria' ? (
+                        <button
+                          type="button"
+                          onClick={() => handleEliminarSancion(sancion.id_sancion)}
+                        >
+                          Eliminar
+                        </button>
+                      ) : (
+                        <span>No disponible</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

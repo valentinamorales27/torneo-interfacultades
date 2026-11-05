@@ -2,12 +2,13 @@
 import { useEffect, useState } from 'react'
 
 import { obtenerGoleadores } from '../services/api'
+import { useTorneo } from '../context/TorneoContext'
 
 import ReporteTabla from '../components/ReporteTabla'
 
-const ID_TORNEO = 1
-
 function TablaGoleadores() {
+  const { idTorneo } = useTorneo()
+
   const [goleadores, setGoleadores] = useState([])
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState('')
@@ -16,14 +17,21 @@ function TablaGoleadores() {
     let activo = true
 
     async function cargarGoleadores() {
+      if (!idTorneo) {
+        setGoleadores([])
+        setCargando(false)
+        return
+      }
+
       try {
         setCargando(true)
         setError('')
+        setGoleadores([])
 
-        const datos = await obtenerGoleadores(ID_TORNEO)
+        const datos = await obtenerGoleadores(idTorneo)
 
         if (activo) {
-          setGoleadores(datos)
+          setGoleadores(Array.isArray(datos) ? datos : [])
         }
       } catch (error) {
         if (activo) {
@@ -41,7 +49,7 @@ function TablaGoleadores() {
     return () => {
       activo = false
     }
-  }, [])
+  }, [idTorneo])
 
   return (
     <>
@@ -60,7 +68,7 @@ function TablaGoleadores() {
             key: 'posicion',
             titulo: 'Pos.',
             render: (fila) => goleadores.indexOf(fila) + 1
-        },
+          },
           { key: 'ci', titulo: 'Cédula' },
           { key: 'nombre', titulo: 'Nombre' },
           { key: 'apellido', titulo: 'Apellido' },

@@ -130,6 +130,30 @@ body {
   overflow: hidden;
 }
 
+/* SELECTOR DE TORNEO */
+
+.dashboard-torneo-selector {
+  padding: 9px 12px;
+  border: 1px solid #d5e0ed;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #173e70;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  max-width: 100%;
+}
+
+.dashboard-torneo-selector:focus {
+  border-color: #087b5c;
+  box-shadow: 0 0 0 2px rgba(8, 123, 92, 0.12);
+}
+
+.dashboard-torneo-selector option {
+  color: #173e70;
+}
+
 .dashboard-trophy {
   width: 54px;
   height: 54px;
@@ -719,6 +743,11 @@ body {
 }
 
 @media (max-width: 600px) {
+
+  .dashboard-torneo-selector {
+    width: 100%;
+  }
+  
   .dashboard-page {
     padding: 12px;
   }
