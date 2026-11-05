@@ -15,7 +15,8 @@ insert into facultad (id_facultad, nombre) values
 
 /*Torneo*/
 insert into torneo (id_torneo, nombre, anio, semestre, fecha_inicio, fecha_fin, estado) values
-(1, 'Torneo Interfacultades de Fútbol 5', 2026, 2, '2026-09-01', '2026-11-30', 'en curso');
+(1, 'Torneo Interfacultades de Fútbol 5', 2026, 2, '2026-09-01', '2026-11-30', 'en curso'),
+(2, 'Torneo Interfacultades 2.0', 2027, 2, '2027-03-01', '2027-07-31', 'inscripción');
 
 /*Complejos*/
 insert into complejo (id_complejo, nombre, direccion, departamento) values
