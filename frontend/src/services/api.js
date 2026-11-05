@@ -55,6 +55,13 @@ export async function crearTorneo(torneo) {
     body: JSON.stringify(torneo)
   }, 'No se pudo crear el torneo.')
 }
+//modificamos el estado de un torneo
+export async function modificarEstadoTorneo(idTorneo, estado) {
+  return solicitarAPI(`/torneos/${idTorneo}/estado`, {
+    method: 'PUT',
+    body: JSON.stringify({ estado })
+  }, 'No se pudo modificar el estado del torneo.')
+}
 
 //equipos
 export async function obtenerEquipos(idTorneo) {
