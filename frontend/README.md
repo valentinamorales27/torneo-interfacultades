@@ -3,7 +3,7 @@
 ### Para levantar el frontend de forma local será necesario tener instalados:
 - Git, para clonar el repositorio.
 - Node.js y npm, para instalar las dependencias y ejecutar la aplicación.
-- *Haber seguido los pasos para levantar la base de datos y el backend*
+- **Haber seguido los pasos para levantar la base de datos y el backend** (sino ir a leer esos README's antes porfas)
 ## Pasos a seguir:
 ### 1. Clonar el repositorio de GitHub
 - Si aún no clonaste el repositorio clonalo ejecutando:
