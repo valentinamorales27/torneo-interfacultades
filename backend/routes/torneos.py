@@ -240,3 +240,65 @@ def crear_torneo():
 
         if conexion:
             conexion.close()
+    
+#modificamos el estado de un torneo
+@torneos_bp.route("/<int:id_torneo>/estado", methods=["PUT"])
+@requiere_rol("administrador")
+def modificar_estado_torneo(id_torneo):
+    datos = request.get_json(silent=True)
+
+    if not isinstance(datos, dict) or "estado" not in datos:
+        return jsonify({"error": "Se debe indicar el estado del torneo"}), 400
+
+    estado = datos["estado"]
+    estados_validos = ("inscripción", "en curso", "finalizado")
+
+    if estado not in estados_validos:
+        return jsonify({"error": "El estado del torneo no es válido"}), 400
+
+    conexion = None
+    cursor = None
+
+    try:
+        conexion = obtener_conexion()
+        cursor = conexion.cursor()
+
+        cursor.execute(
+            "SELECT estado FROM torneo WHERE id_torneo = %s",
+            (id_torneo,)
+        )
+
+        torneo = cursor.fetchone()
+
+        if torneo is None:
+            return jsonify({"error": "El torneo no existe"}), 404
+
+        cursor.execute(
+            "UPDATE torneo SET estado = %s WHERE id_torneo = %s",
+            (estado, id_torneo)
+        )
+
+        conexion.commit()
+
+        return jsonify({
+            "mensaje": "Estado del torneo actualizado correctamente",
+            "id_torneo": id_torneo,
+            "estado": estado
+        }), 200
+
+    except mysql.connector.Error as error:
+        if conexion:
+            conexion.rollback()
+
+        return jsonify({
+            "error": "No se pudo modificar el estado del torneo",
+            "detalle": str(error)
+        }), 500
+
+    finally:
+        if cursor:
+            cursor.close()
+
+        if conexion:
+            conexion.close()
+

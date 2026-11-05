@@ -1,7 +1,7 @@
 import './Dashboard.css'
 import { useEffect, useState } from 'react'
 
-import { obtenerProximosPartidos } from '../services/api'
+import { obtenerProximosPartidos, modificarEstadoTorneo } from '../services/api'
 import { useTorneo } from '../context/TorneoContext'
 
 // Componente encargado de dibujar los iconos
@@ -61,11 +61,15 @@ function formatearHora(hora) {
 
 // Página de resumen del torneo
 function Dashboard() {
-  const { idTorneo, torneoSeleccionado } = useTorneo()
+  const { idTorneo, torneoSeleccionado, rolUsuario, actualizarEstadoTorneo } = useTorneo()
 
   const [partidos, setPartidos] = useState([])
   const [cargandoPartidos, setCargandoPartidos] = useState(true)
   const [errorPartidos, setErrorPartidos] = useState('')
+  const [editandoEstado, setEditandoEstado] = useState(false)
+  const [nuevoEstado, setNuevoEstado] = useState('')
+  const [guardandoEstado, setGuardandoEstado] = useState(false)
+  const [errorEstado, setErrorEstado] = useState('')
 
   // Consultamos los próximos partidos del torneo seleccionado
   useEffect(() => {
@@ -90,6 +94,23 @@ function Dashboard() {
       cargarPartidos()
     }
   }, [idTorneo])
+
+  async function guardarEstado() {
+  if (guardandoEstado || !idTorneo) return
+
+  setGuardandoEstado(true)
+  setErrorEstado('')
+
+  try {
+    await modificarEstadoTorneo(idTorneo, nuevoEstado)
+    actualizarEstadoTorneo(nuevoEstado)
+    setEditandoEstado(false)
+  } catch (error) {
+    setErrorEstado(error.message)
+  } finally {
+    setGuardandoEstado(false)
+  }
+}
 
   return (
     <>
@@ -205,6 +226,7 @@ function Dashboard() {
               <strong>{torneoSeleccionado?.nombre}</strong>
             </div>
           </div>
+        
 
           <div className="tournament-detail">
             <span className="detail-icon">
@@ -219,6 +241,7 @@ function Dashboard() {
             </div>
           </div>
 
+          
           <div className="tournament-detail">
             <span className="detail-icon">
               <Icon name="info" />
@@ -226,7 +249,72 @@ function Dashboard() {
 
             <div>
               <small>Estado</small>
-              <strong>{torneoSeleccionado?.estado}</strong>
+
+              {!editandoEstado ? (
+               <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px'
+                  }}>
+                  <strong>{torneoSeleccionado?.estado}</strong>
+
+                  {rolUsuario === 'administrador' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNuevoEstado(torneoSeleccionado?.estado || 'inscripción')
+                        setErrorEstado('')
+                        setEditandoEstado(true)
+                      }}
+                      style={{
+                        padding: '5px 12px',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '6px',
+                        background: 'white',
+                        color: '#123b69',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Editar
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <select
+                    value={nuevoEstado}
+                    onChange={(e) => setNuevoEstado(e.target.value)}
+                    disabled={guardandoEstado}
+                  >
+                    <option value="inscripción">Inscripción</option>
+                    <option value="en curso">En curso</option>
+                    <option value="finalizado">Finalizado</option>
+                  </select>
+
+                  <button
+                    type="button"
+                    onClick={guardarEstado}
+                    disabled={guardandoEstado}
+                  >
+                    {guardandoEstado ? 'Guardando...' : 'Guardar'}
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={guardandoEstado}
+                    onClick={() => {
+                      setEditandoEstado(false)
+                      setErrorEstado('')
+                    }}
+                  >
+                    Cancelar
+                  </button>
+
+                  {errorEstado && (
+                    <p style={{ color: 'red' }}>{errorEstado}</p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

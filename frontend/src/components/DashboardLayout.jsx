@@ -7,7 +7,8 @@ import { NavLink, Outlet, useNavigate } from 'react-router'
 import {
   obtenerSesion,
   cerrarSesion,
-  obtenerTorneos
+  obtenerTorneos,
+  crearTorneo
 } from '../services/api'
 
 import { TorneoContext } from '../context/TorneoContext'
@@ -167,6 +168,18 @@ function DashboardLayout() {
   const [torneoSeleccionado, setTorneoSeleccionado] = useState(null)
   const [cargandoTorneos, setCargandoTorneos] = useState(true)
   const [errorTorneos, setErrorTorneos] = useState('')
+  const [mostrarFormularioTorneo, setMostrarFormularioTorneo] = useState(false)
+  const [guardandoTorneo, setGuardandoTorneo] = useState(false)
+  const [errorNuevoTorneo, setErrorNuevoTorneo] = useState('')
+
+  const [nuevoTorneo, setNuevoTorneo] = useState({
+    nombre: '',
+    anio: '',
+    semestre: '1',
+    fecha_inicio: '',
+    fecha_fin: '',
+    estado: 'inscripción'
+  })
 
   // Verificamos que exista una sesión activa
   useEffect(() => {
@@ -209,6 +222,56 @@ function DashboardLayout() {
 
     cargarTorneos()
   }, [])
+    
+    
+  function cambiarCampoTorneo(evento) {
+    const { name, value } = evento.target
+
+    setNuevoTorneo((anterior) => ({
+      ...anterior,
+      [name]: value
+    }))
+  }
+
+  async function guardarNuevoTorneo(evento) {
+    evento.preventDefault()
+
+    if (guardandoTorneo) return
+
+    setErrorNuevoTorneo('')
+    setGuardandoTorneo(true)
+
+    try {
+      const resultado = await crearTorneo(nuevoTorneo)
+
+      const listaActualizada = await obtenerTorneos()
+      setTorneos(listaActualizada)
+      setErrorTorneos('')
+
+      const creado = listaActualizada.find(
+        (torneo) => torneo.id_torneo === resultado.id_torneo
+      )
+
+      if (creado) {
+        setTorneoSeleccionado(creado)
+      }
+
+      setNuevoTorneo({
+        nombre: '',
+        anio: '',
+        semestre: '1',
+        fecha_inicio: '',
+        fecha_fin: '',
+        estado: 'inscripción'
+      })
+
+      setMostrarFormularioTorneo(false)
+    } catch (error) {
+      setErrorNuevoTorneo(error.message)
+    } finally {
+      setGuardandoTorneo(false)
+    }
+  }
 
   // Cambiamos el torneo seleccionado
   function manejarCambioTorneo(idTorneo) {
@@ -220,6 +283,22 @@ function DashboardLayout() {
       setTorneoSeleccionado(torneo)
     }
   }
+
+  //actualizamos el estado del torneo seleccionado
+function actualizarEstadoTorneo(nuevoEstado) {
+  setTorneoSeleccionado((anterior) => ({
+    ...anterior,
+    estado: nuevoEstado
+  }))
+
+  setTorneos((anteriores) =>
+    anteriores.map((torneo) =>
+      torneo.id_torneo === torneoSeleccionado?.id_torneo
+        ? { ...torneo, estado: nuevoEstado }
+        : torneo
+    )
+  )
+}
 
   // Cerramos la sesión
   async function manejarCerrarSesion() {
@@ -236,13 +315,15 @@ function DashboardLayout() {
   }
 
   return (
-    <TorneoContext.Provider
-      value={{
-        torneos,
-        torneoSeleccionado,
-        idTorneo: torneoSeleccionado?.id_torneo
-      }}
-    >
+  <TorneoContext.Provider
+    value={{
+      torneos,
+      torneoSeleccionado,
+      idTorneo: torneoSeleccionado?.id_torneo,
+      rolUsuario: usuario?.rol,
+      actualizarEstadoTorneo
+    }}
+  >
       <main className="dashboard-page">
 
         <header className="dashboard-header">
@@ -324,7 +405,130 @@ function DashboardLayout() {
                 ))}
               </select>
             )}
-          </div>
+            {usuario?.rol === 'administrador' && (
+          <button
+            type="button"
+            onClick={() => {
+              setMostrarFormularioTorneo(!mostrarFormularioTorneo)
+              setErrorNuevoTorneo('')
+            }}
+            style={{
+              marginLeft: '12px',
+              padding: '5px 12px',
+              cursor: 'pointer'
+            }}
+          >
+            +
+          </button>
+        )}
+        </div>
+          
+          {mostrarFormularioTorneo && usuario?.rol === 'administrador' && (
+            <form
+              onSubmit={guardarNuevoTorneo}
+              style={{
+                background: 'white',
+                padding: '20px',
+                marginTop: '15px',
+                border: '1px solid #ddd',
+                borderRadius: '10px',
+                display: 'grid',
+                gap: '12px'
+              }}
+            >
+              <h3>Crear nuevo torneo</h3>
+
+              <label>
+                Nombre del torneo
+                <input
+                  type="text"
+                  name="nombre"
+                  value={nuevoTorneo.nombre}
+                  onChange={cambiarCampoTorneo}
+                  maxLength={50}
+                  required
+                />
+              </label>
+
+              <label>
+                Año
+                <input
+                  type="number"
+                  name="anio"
+                  value={nuevoTorneo.anio}
+                  onChange={cambiarCampoTorneo}
+                  min="1"
+                  required
+                />
+              </label>
+
+              <label>
+                Semestre
+                <select
+                  name="semestre"
+                  value={nuevoTorneo.semestre}
+                  onChange={cambiarCampoTorneo}
+                >
+                  <option value="1">Primer semestre</option>
+                  <option value="2">Segundo semestre</option>
+                </select>
+              </label>
+
+              <label>
+                Fecha de inicio
+                <input
+                  type="date"
+                  name="fecha_inicio"
+                  value={nuevoTorneo.fecha_inicio}
+                  onChange={cambiarCampoTorneo}
+                  required
+                />
+              </label>
+
+              <label>
+                Fecha de finalización
+                <input
+                  type="date"
+                  name="fecha_fin"
+                  value={nuevoTorneo.fecha_fin}
+                  onChange={cambiarCampoTorneo}
+                  min={nuevoTorneo.fecha_inicio || undefined}
+                  required
+                />
+              </label>
+
+              <label>
+                Estado
+                <select
+                  name="estado"
+                  value={nuevoTorneo.estado}
+                  onChange={cambiarCampoTorneo}
+                >
+                  <option value="inscripción">Inscripción</option>
+                  <option value="en curso">En curso</option>
+                  <option value="finalizado">Finalizado</option>
+                </select>
+              </label>
+
+              {errorNuevoTorneo && (
+                <p style={{ color: 'red' }}>{errorNuevoTorneo}</p>
+              )}
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button type="submit" disabled={guardandoTorneo}>
+                  {guardandoTorneo ? 'Guardando...' : 'Crear torneo'}
+                </button>
+
+                <button
+                  type="button"
+                  disabled={guardandoTorneo}
+                  onClick={() => setMostrarFormularioTorneo(false)}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          )}
 
         </header>
 
