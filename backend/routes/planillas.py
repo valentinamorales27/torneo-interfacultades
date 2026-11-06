@@ -34,59 +34,65 @@ def obtener_partido(cursor, id_partido):
     cursor.execute(consulta, (id_partido,))
 
     return cursor.fetchone()
-#verificamos si un jugador todavía tiene fechas de suspensión pendientes
+
+#verificamos si un jugador tiene suspensiones pendientes
 def jugador_esta_suspendido(cursor, ci_jugador, id_torneo, id_equipo, numero_fecha, id_partido):
 
-    # obtenemos la cantidad total de fechas de suspensión
-    # y la fecha de inicio de la primera sanción
-    consulta = """
-        SELECT
-            SUM(cantidad_fechas) AS total_sanciones,
-            MIN(numero_fecha_inicio) AS primera_fecha
+    #obtenemos las sanciones que comenzaron hasta la fecha actual
+    cursor.execute("""
+        SELECT numero_fecha_inicio, cantidad_fechas
         FROM sancion_jugador
         WHERE ci_jugador = %s
         AND id_torneo = %s
         AND numero_fecha_inicio <= %s
-    """
+        ORDER BY numero_fecha_inicio
+    """, (ci_jugador, id_torneo, numero_fecha))
 
-    cursor.execute(
-        consulta,
-        (ci_jugador, id_torneo, numero_fecha)
-    )
+    sanciones = cursor.fetchall()
 
-    sanciones = cursor.fetchone()
-
-    # si el jugador no tiene sanciones, puede jugar
-    if sanciones["total_sanciones"] is None:
+    if not sanciones:
         return False
 
-    # contamos las fechas que jugó su equipo desde la primera sanción
-    consulta = """
-        SELECT COUNT(DISTINCT p.numero_fecha) AS fechas_cumplidas
-        FROM partido p
-        WHERE p.id_torneo = %s
-        AND (p.id_equipo_local = %s OR p.id_equipo_visitante = %s)
-        AND p.numero_fecha >= %s
-        AND p.numero_fecha <= %s
-        AND (p.estado = 'jugado' OR p.id_partido = %s)
-    """
+    #obtenemos las fechas anteriores efectivamente jugadas por el equipo
+    cursor.execute("""
+        SELECT DISTINCT numero_fecha
+        FROM partido
+        WHERE id_torneo = %s
+        AND (id_equipo_local = %s OR id_equipo_visitante = %s)
+        AND numero_fecha < %s
+        AND estado = 'jugado'
+        ORDER BY numero_fecha
+    """, (id_torneo, id_equipo, id_equipo, numero_fecha))
 
-    valores = (
-        id_torneo,
-        id_equipo,
-        id_equipo,
-        sanciones["primera_fecha"],
-        numero_fecha,
-        id_partido
-    )
+    fechas_jugadas = cursor.fetchall()
 
-    cursor.execute(consulta, valores)
+    pendientes = 0
+    indice = 0
 
-    fechas_cumplidas = cursor.fetchone()["fechas_cumplidas"]
+    #recorremos las fechas jugadas en orden
+    for fecha in fechas_jugadas:
+        numero = fecha["numero_fecha"]
 
-    # si todavía no cumplió todas las fechas de suspensión,
-    # el jugador sigue suspendido
-    return fechas_cumplidas <= sanciones["total_sanciones"]
+        #agregamos las sanciones que ya comenzaron
+        while (
+            indice < len(sanciones)
+            and sanciones[indice]["numero_fecha_inicio"] <= numero
+        ):
+            pendientes += sanciones[indice]["cantidad_fechas"]
+            indice += 1
+
+        #cada fecha jugada cumple una fecha de suspensión pendiente
+        if pendientes > 0:
+            pendientes -= 1
+
+    #sumamos las sanciones nuevas que empiezan hasta la fecha actual
+    while indice < len(sanciones):
+        pendientes += sanciones[indice]["cantidad_fechas"]
+        indice += 1
+
+    #si quedan fechas pendientes, no puede jugar
+    return pendientes > 0
+
 
 #obtenemos los jugadores de la planilla de un partido
 @planillas_bp.route("/<int:id_partido>/planilla", methods=["GET"])
