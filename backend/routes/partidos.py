@@ -346,6 +346,29 @@ def crear_partido():
     cursor = conexion.cursor(dictionary=True)
 
     try:
+        
+        #verificamos que el torneo no esté finalizado
+        cursor.execute(
+            """
+            SELECT estado
+            FROM torneo
+            WHERE id_torneo = %s
+            """,
+            (datos["id_torneo"],)
+        )
+
+        torneo = cursor.fetchone()
+
+        if torneo is None:
+            return jsonify({
+                "error": "No existe un torneo con ese identificador"
+            }), 404
+
+        if torneo["estado"] == "finalizado":
+            return jsonify({
+                "error": "No se pueden crear partidos en un torneo finalizado"
+            }), 409
+        
         error_fecha = validar_fecha_torneo(
             cursor,
             datos["id_torneo"],

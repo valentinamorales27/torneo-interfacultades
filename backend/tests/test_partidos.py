@@ -262,6 +262,35 @@ class TestPartidos(unittest.TestCase):
         )
 
         conexion.commit.assert_not_called()
+    
+    def test_no_crear_partido_torneo_finalizado(self):
+        from unittest.mock import MagicMock, patch
+
+        conexion = MagicMock()
+        cursor = conexion.cursor.return_value
+
+        cursor.fetchone.return_value = {
+            "estado": "finalizado"
+        }
+
+        with patch(
+            "routes.partidos.obtener_conexion",
+            return_value=conexion
+        ):
+            respuesta = self.cliente.post(
+                "/partidos/",
+                json=self.partido
+            )
+
+        self.assertEqual(respuesta.status_code, 409)
+
+        self.assertIn(
+            "No se pueden crear partidos en un torneo finalizado",
+            respuesta.get_json()["error"]
+        )
+
+        conexion.commit.assert_not_called()
+
 
 
 if __name__ == "__main__":
