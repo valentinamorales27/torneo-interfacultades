@@ -51,6 +51,7 @@ from routes.tarjetas import tarjetas_bp
 from routes.reportes import reportes_bp
 from routes.login import login_bp
 from routes.torneos import torneos_bp
+from routes.usuarios import usuarios_bp
 
 #registramos las rutas
 app.register_blueprint(jugadores_bp)
@@ -66,6 +67,7 @@ app.register_blueprint(tarjetas_bp)
 app.register_blueprint(reportes_bp)
 app.register_blueprint(login_bp)
 app.register_blueprint(torneos_bp)
+app.register_blueprint(usuarios_bp)
 
 
 @app.route("/")
