@@ -17,19 +17,45 @@
 ## 5. Crear la base de datos
 - Para poder continuar ya debe de tener creada la BD de forma local, si no lo ha hecho aún debe de ir a la carpeta de *database* de este remo y seguir los pasos del README.md para poder crear e insertar los datos de prueba en la base de datos. Una vez creada puede seguir con el paso siguiente.
 ## 6. Configurar la conexión con MySQL
+
 - Dentro de la carpeta `backend` se encuentra el archivo `db.py`, que se encarga de establecer la conexión con MySQL.
-- Para que funcione correctamente, cada usuario debe configurar sus propios datos de conexión.
+- Para mejorar la seguridad, decidimos utilizar un usuario de MySQL exclusivo para la aplicación, llamado `torneo_app`, en lugar de utilizar directamente `root`. Este usuario solamente tiene permisos para consultar, insertar, modificar y eliminar registros de nuestra base de datos.
+
+**Crear el usuario de MySQL:**
+
+- Primero se debe haber creado la base de datos `torneo_interfacultades`, siguiendo las instrucciones de la carpeta `database`.
+- Luego, desde DataGrip, conectarse a MySQL con el usuario `root`, abrir una consola SQL y ejecutar las siguientes instrucciones:
+
+create user 'torneo_app'@'localhost' identified by 'tu_contraseña_segura';
+
+grant select, insert, update, delete on torneo_interfacultades.* to 'torneo_app'@'localhost';
+
+- Se debe reemplazar `tu_contraseña_segura` por una contraseña propia y segura.
+- Si el usuario `torneo_app` ya existe, no es necesario crearlo nuevamente.
+- Para comprobar que los permisos fueron asignados correctamente, ejecutar:
+
+show grants for 'torneo_app'@'localhost';
+
+**Configurar la conexión del backend:**
+
 - Dentro de la carpeta `backend`, se debe crear un archivo llamado `.env` con el siguiente contenido:
-  ```env
-  MYSQL_HOST=localhost
-  MYSQL_USER=root
-  MYSQL_PASSWORD=tu_contraseña
-  MYSQL_DATABASE=torneo_interfacultades
-  FRONTEND_ORIGIN=http://localhost:5173
-  ```
-- Se deben reemplazar los valores por los correspondientes a la instalación local de MySQL. Si el usuario no tiene contraseña, podes dejar el valor de `MYSQL_PASSWORD` vacío.
-- Para ver si la conexión quedó establecida correctamente, ejecutar el comando `python db.py`.
-- Si funciona, debería aparecer un mensaje indicando que la conexión con MySQL fue exitosa.
+
+MYSQL_HOST=localhost
+
+MYSQL_USER=torneo_app
+
+MYSQL_PASSWORD=tu_contraseña_segura
+
+MYSQL_DATABASE=torneo_interfacultades
+
+FRONTEND_ORIGIN=http://localhost:5173
+
+- En `MYSQL_PASSWORD` se debe colocar la misma contraseña utilizada al crear el usuario `torneo_app`.
+- El archivo `.env` contiene información privada y no debe subirse a GitHub.
+- Para comprobar si la conexión quedó establecida correctamente, ejecutar desde la carpeta `backend` el comando `python db.py`.
+- Si funciona, debería aparecer el mensaje `¡Conexión a MySQL exitosa!`.
+
+**Aclaración:** el usuario `torneo_app` tiene permisos limitados sobre la base de datos del torneo. Los permisos específicos del administrador y del planillero se controlan desde el backend mediante el decorador `requiere_rol` de Flask.
 
 ## 7. Configurar la clave secreta de Flask
 - Para gestionar las sesiones de usuario, Flask necesita una clave secreta.
