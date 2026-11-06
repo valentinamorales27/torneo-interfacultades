@@ -354,3 +354,32 @@ export async function obtenerTurnos() {
     'No se pudieron obtener los turnos.'
   )
 }
+
+export async function obtenerPlanilleros() {
+  return solicitarAPI(
+    '/usuarios/planilleros',
+    {},
+    'No se pudieron obtener los planilleros.'
+  )
+}
+
+export async function crearPlanillero(datos) {
+  return solicitarAPI(
+    '/usuarios/planilleros',
+    {
+      method: 'POST',
+      body: JSON.stringify(datos)
+    },
+    'No se pudo crear el planillero.'
+  )
+}
+
+export async function eliminarPlanillero(correo) {
+  return solicitarAPI(
+    `/usuarios/planilleros/${encodeURIComponent(correo)}`,
+    {
+      method: 'DELETE'
+    },
+    'No se pudo eliminar el planillero.'
+  )
+}

@@ -13,6 +13,7 @@ import TablaGoleadores from './pages/TablaGoleadores'
 import FairPlay from './pages/FairPlay'
 import Planillas from './pages/Planillas'
 import Sanciones from './pages/Sanciones'
+import Usuarios from './pages/Usuarios'
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
           <Route path="/fair-play" element={<FairPlay />} />
           <Route path="/planillas" element={<Planillas />} />
           <Route path="/sanciones" element={<Sanciones />} />
+          <Route path="/usuarios" element={<Usuarios />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

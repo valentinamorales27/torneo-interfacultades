@@ -150,12 +150,19 @@ const navegacion = [
     icono: 'ball',
     ruta: '/tabla-goleadores'
   },
-  {
+    {
     nombre: 'Fair play',
     icono: 'shield',
     ruta: '/fair-play'
+  },
+  {
+    nombre: 'Planilleros',
+    icono: 'users',
+    ruta: '/usuarios',
+    rol: 'administrador'
   }
 ]
+
 
 // Layout principal que comparten todas las páginas
 function DashboardLayout() {

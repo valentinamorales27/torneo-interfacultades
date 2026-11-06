@@ -33,6 +33,27 @@ def obtener_partido(cursor, id_partido):
 
     return cursor.fetchone()
 
+#verificamos si todavía se puede corregir el resultado
+def permite_corregir_resultado(cursor, id_partido):
+
+    cursor.execute("""
+        SELECT
+            NOW() >= TIMESTAMP(p.dia, t.hora_fin)
+            AND NOW() <= TIMESTAMP(p.dia, t.hora_fin) + INTERVAL 48 HOUR
+            AS dentro_del_plazo
+        FROM partido p
+        JOIN turno t ON p.id_turno = t.id_turno
+        WHERE p.id_partido = %s
+    """, (id_partido,))
+
+    resultado = cursor.fetchone()
+
+    return (
+        resultado is not None
+        and bool(resultado["dentro_del_plazo"])
+    )
+
+
 
 #obtenemos los goles de un partido
 @goles_bp.route("/<int:id_partido>/goles", methods=["GET"])
@@ -118,6 +139,13 @@ def agregar_gol(id_partido):
             return jsonify({
                 "error": "Solamente se pueden registrar goles en partidos jugados"
             }), 409
+        
+        #verificamos que no hayan pasado más de 48 horas
+        if not permite_corregir_resultado(cursor, id_partido):
+            return jsonify({
+                "error": "No se pueden registrar goles después de las 48 horas del partido"
+            }), 409
+
 
         #verificamos que el jugador esté registrado en la planilla
         cursor.execute(
@@ -182,7 +210,7 @@ def eliminar_gol(id_gol):
         #verificamos que exista el gol y obtenemos el estado del partido
         cursor.execute(
             """
-            SELECT g.id_gol, p.estado
+            SELECT g.id_gol, g.id_partido, p.estado
             FROM gol g
             JOIN partido p ON g.id_partido = p.id_partido
             WHERE g.id_gol = %s
@@ -199,6 +227,11 @@ def eliminar_gol(id_gol):
         if gol["estado"] != "jugado":
             return jsonify({
                 "error": "Solamente se pueden eliminar goles de partidos jugados"
+            }), 409
+        #verificamos que no hayan pasado más de 48 horas
+        if not permite_corregir_resultado(cursor, gol["id_partido"]):
+            return jsonify({
+                "error": "No se puede corregir el resultado después de las 48 horas"
             }), 409
 
         #eliminamos el gol
