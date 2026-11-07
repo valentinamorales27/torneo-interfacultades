@@ -23,3 +23,27 @@
 - Abrir el archivo *3_creacion_view_goles_partido.sql* y ejecutar todas sus líneas.
   
 - Luego de haber seguido estos 5 pasos ya deberías de tener la Base de Datos creada y con sus datos. Ahora ya puedes ir a la carpeta /backend y seguir con los pasos para correr la aplicación de forma local.
+
+## Configuración del usuario de MySQL
+
+Para mejorar la seguridad del sistema, decidimos utilizar un usuario de MySQL exclusivo para la aplicación, llamado `torneo_app`, en lugar de conectarnos directamente con `root`.
+
+Este usuario tiene permisos para consultar, insertar, modificar y eliminar registros de la base de datos `torneo_interfacultades`, pero no puede crear ni eliminar tablas ni administrar usuarios de MySQL.
+
+Una vez creada la base de datos, abrir DataGrip, conectarse con el usuario `root` y ejecutar las siguientes instrucciones en una consola SQL:
+
+create user if not exists 'torneo_app'@'localhost' identified by 'tu_contraseña_segura';
+
+grant select, insert, update, delete on torneo_interfacultades.* to 'torneo_app'@'localhost';
+
+Se debe reemplazar `tu_contraseña_segura` por una contraseña propia y segura. Si el usuario ya existe, no es necesario volver a crearlo y se debe utilizar la contraseña que tenía configurada.
+
+Para comprobar que los permisos fueron asignados correctamente, ejecutar:
+
+show grants for 'torneo_app'@'localhost';
+
+Deberían aparecer los permisos `SELECT`, `INSERT`, `UPDATE` y `DELETE` sobre la base de datos del torneo.
+
+Los roles de administrador y planillero de la aplicación siguen siendo controlados por Flask mediante `requiere_rol`. El usuario `torneo_app` agrega una restricción de seguridad en MySQL, pero no diferencia los roles de la aplicación.
+
+Una vez terminada esta configuración, continuar con el README de la carpeta `backend`.
