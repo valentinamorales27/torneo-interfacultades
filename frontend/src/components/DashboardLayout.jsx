@@ -125,6 +125,11 @@ const navegacion = [
     ruta: '/jugadores'
   },
   {
+  nombre: 'Complejos y canchas',
+  icono: 'pin',
+  ruta: '/complejos'
+  },
+  {
     nombre: 'Partidos',
     icono: 'calendar',
     ruta: '/partidos'

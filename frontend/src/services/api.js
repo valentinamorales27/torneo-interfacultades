@@ -383,3 +383,38 @@ export async function eliminarPlanillero(correo) {
     'No se pudo eliminar el planillero.'
   )
 }
+
+
+ 
+//obtenemos todos los complejos
+export async function obtenerComplejos() {
+  return solicitarAPI(
+    '/complejos/',
+    { method: 'GET' },
+    'No se pudieron obtener los complejos.'
+  )
+}
+
+//creamos un complejo
+export async function crearComplejo(datos) {
+  return solicitarAPI(
+    '/complejos/',
+    {
+      method: 'POST',
+      body: JSON.stringify(datos)
+    },
+    'No se pudo crear el complejo.'
+  )
+}
+
+//creamos una cancha
+export async function crearCancha(datos) {
+  return solicitarAPI(
+    '/canchas/',
+    {
+      method: 'POST',
+      body: JSON.stringify(datos)
+    },
+    'No se pudo crear la cancha.'
+  )
+}
