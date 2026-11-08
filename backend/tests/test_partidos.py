@@ -217,7 +217,9 @@ class TestPartidos(unittest.TestCase):
 
         cursor.fetchone.return_value = {
             "id_partido": 1,
-            "estado": "jugado"
+            "estado": "jugado",
+            "id_torneo": 1,
+            "estado_torneo": "en curso"
         }
 
         with patch(
@@ -243,7 +245,9 @@ class TestPartidos(unittest.TestCase):
 
         cursor.fetchone.return_value = {
             "id_partido": 1,
-            "estado": "cancelado"
+            "estado": "cancelado",
+            "id_torneo": 1,
+            "estado_torneo": "en curso"
         }
 
         with patch(
@@ -290,6 +294,59 @@ class TestPartidos(unittest.TestCase):
         )
 
         conexion.commit.assert_not_called()
+    
+    def test_no_modificar_partido_torneo_finalizado(self):
+        with self.cliente.session_transaction() as sesion:
+            sesion["correo"] = "admin@prueba.com"
+            sesion["rol"] = "administrador"
+
+        conexion = MagicMock()
+        cursor = conexion.cursor.return_value
+
+        cursor.fetchone.return_value = {
+            "id_partido": 1,
+            "estado": "programado",
+            "id_torneo": 1,
+            "estado_torneo": "finalizado"
+        }
+
+        with patch(
+            "routes.partidos.obtener_conexion",
+            return_value=conexion
+        ):
+            respuesta = self.cliente.put(
+                "/partidos/1",
+                json=self.partido
+            )
+
+        self.assertEqual(respuesta.status_code, 409)
+        self.assertIn("finalizado", respuesta.get_json()["error"])
+        conexion.commit.assert_not_called()
+
+    def test_no_eliminar_partido_torneo_finalizado(self):
+        with self.cliente.session_transaction() as sesion:
+                sesion["correo"] = "admin@prueba.com"
+                sesion["rol"] = "administrador"
+
+        conexion = MagicMock()
+        cursor = conexion.cursor.return_value
+
+        cursor.fetchone.return_value = {
+            "id_partido": 1,
+            "estado": "programado",
+            "estado_torneo": "finalizado"
+        }
+
+        with patch(
+            "routes.partidos.obtener_conexion",
+            return_value=conexion
+        ):
+            respuesta = self.cliente.delete("/partidos/1")
+
+        self.assertEqual(respuesta.status_code, 409)
+        self.assertIn("finalizado", respuesta.get_json()["error"])
+        conexion.commit.assert_not_called()
+
 
 
 

@@ -451,15 +451,29 @@ def modificar_partido(id_partido):
 
     try:
         #verificamos que exista el partido
+        
         cursor.execute(
-            "SELECT id_partido, estado FROM partido WHERE id_partido = %s",
+            """
+            SELECT p.id_partido, p.estado,
+                   t.estado AS estado_torneo
+            FROM partido p
+            JOIN torneo t ON p.id_torneo = t.id_torneo
+            WHERE p.id_partido = %s
+            """,
             (id_partido,)
         )
+
 
         partido_actual = cursor.fetchone()
 
         if not partido_actual:
             return jsonify({"error": "No existe un partido con ese identificador"}), 404
+            
+        #no permitimos eliminar partidos de torneos finalizados
+        if partido_actual["estado_torneo"] == "finalizado":
+            return jsonify({
+                "error": "No se pueden eliminar partidos de un torneo finalizado"
+            }), 409
 
         #no permitimos modificar partidos jugados o cancelados
         if partido_actual["estado"] in ["jugado", "cancelado"]:
@@ -583,7 +597,13 @@ def eliminar_partido(id_partido):
     try:
         #verificamos que exista el partido
         cursor.execute(
-            "SELECT id_partido, estado FROM partido WHERE id_partido = %s",
+            """
+            SELECT p.id_partido, p.estado,
+                   t.estado AS estado_torneo
+            FROM partido p
+            JOIN torneo t ON p.id_torneo = t.id_torneo
+            WHERE p.id_partido = %s
+            """,
             (id_partido,)
         )
 
@@ -591,6 +611,11 @@ def eliminar_partido(id_partido):
 
         if not partido:
             return jsonify({"error": "No existe un partido con ese identificador"}), 404
+                #no permitimos eliminar partidos de torneos finalizados
+        if partido["estado_torneo"] == "finalizado":
+            return jsonify({
+                "error": "No se pueden eliminar partidos de un torneo finalizado"
+            }), 409
 
         if partido["estado"] != "programado":
             return jsonify({

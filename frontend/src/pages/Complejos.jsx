@@ -6,7 +6,9 @@ import {
   obtenerComplejos,
   obtenerCanchas,
   crearComplejo,
-  crearCancha
+  crearCancha,
+  eliminarComplejo,
+  eliminarCancha
 } from '../services/api'
 
 import { useTorneo } from '../context/TorneoContext'
@@ -151,6 +153,61 @@ function Complejos() {
       setGuardando(false)
     }
   }
+  
+  async function manejarEliminarComplejo(complejo) {
+    if (!esAdministrador || guardando) return
+
+    const confirmado = window.confirm(
+      `¿Seguro que querés eliminar el complejo ${complejo.nombre}?`
+    )
+
+    if (!confirmado) return
+
+    try {
+      setGuardando(true)
+      setError('')
+      setMensaje('')
+
+      await eliminarComplejo(complejo.id_complejo)
+      await cargarDatos()
+
+      setMensaje('Complejo eliminado correctamente.')
+    } catch (error) {
+      setError(error.message)
+    } finally {
+      setGuardando(false)
+    }
+  }
+
+  async function manejarEliminarCancha(cancha) {
+    if (!esAdministrador || guardando) return
+
+    const confirmado = window.confirm(
+      `¿Seguro que querés eliminar la cancha ${cancha.nombre_cancha}?`
+    )
+
+    if (!confirmado) return
+
+    try {
+      setGuardando(true)
+      setError('')
+      setMensaje('')
+
+      await eliminarCancha(
+        cancha.id_complejo,
+        cancha.nombre_cancha
+      )
+
+      await cargarDatos()
+
+      setMensaje('Cancha eliminada correctamente.')
+    } catch (error) {
+      setError(error.message)
+    } finally {
+      setGuardando(false)
+    }
+  }
+
 
 
   return (
@@ -254,6 +311,7 @@ function Complejos() {
                   <th>Nombre</th>
                   <th>Dirección</th>
                   <th>Departamento</th>
+                  {esAdministrador && <th>Acciones</th>}
                 </tr>
               </thead>
 
@@ -263,6 +321,17 @@ function Complejos() {
                     <td>{complejo.nombre}</td>
                     <td>{complejo.direccion}</td>
                     <td>{complejo.departamento}</td>
+                    {esAdministrador && (
+                    <td>
+                      <button
+                        type="button"
+                        disabled={guardando}
+                        onClick={() => manejarEliminarComplejo(complejo)}
+                      >
+                        Eliminar
+                      </button>
+                    </td>
+                  )}
                   </tr>
                 ))}
               </tbody>
@@ -388,6 +457,7 @@ function Complejos() {
                   <th>Complejo</th>
                   <th>Superficie</th>
                   <th>Techada</th>
+                  {esAdministrador && <th>Acciones</th>}
                 </tr>
               </thead>
 
@@ -400,6 +470,17 @@ function Complejos() {
                     <td>{cancha.nombre_complejo}</td>
                     <td>{cancha.superficie}</td>
                     <td>{Boolean(cancha.techada) ? 'Sí' : 'No'}</td>
+                    {esAdministrador && (
+                    <td>
+                      <button
+                        type="button"
+                        disabled={guardando}
+                        onClick={() => manejarEliminarCancha(cancha)}
+                      >
+                        Eliminar
+                      </button>
+                    </td>
+                  )}
                   </tr>
                 ))}
               </tbody>
