@@ -6,14 +6,6 @@
 - Para poder levantar esta aplicación hay que tener de manera local la base de datos, el backend y el frontend. Para conseguir esto, en ese mismo orden vaya ingresando a las carpetas de este repositorio y lea los README's que allí se encuentran para levantar las partes del proyecto. Una vez terminado va a poder correr la app.
 
 ## Tecnologías utilizadas
-- Python: lenguaje utilizado para el backend.
-- Flask: framework utilizado para crear los endpoints y gestionar las peticiones HTTP del frontend.
-- MySQL: utilizado para crear la base de datos relacional.
-- mysql-connector-python: biblioteca para conectar Python con MySQL y poder ejecutar las consultas SQL.
-- React: biblioteca utilizada para desarrollar la interfaz de usuario del frontend.
-- JavaScript, HTML y CSS: tecnologías utilizadas para implementar la interacción, la estructura y los estilos de la interfaz del frontend.
-
-## Tecnologías utilizadas
 ### Backend
 - Python: lenguaje de programación usado para desarrollar la lógica del servidor.
 - Flask: framework utilizado para crear la API y gestionar las solicitudes HTTP provenientes del frontend.
