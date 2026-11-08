@@ -437,3 +437,27 @@ export async function eliminarCancha(idComplejo, nombreCancha) {
     'No se pudo eliminar la cancha.'
   )
 }
+
+ //modificamos los datos de un complejo
+export async function modificarComplejo(idComplejo, datos) {
+  return solicitarAPI(
+    `/complejos/${idComplejo}`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(datos)
+    },
+    'No se pudo modificar el complejo.'
+  )
+}
+
+//modificamos los datos de una cancha
+export async function modificarCancha(idComplejo, nombreCancha, datos) {
+  return solicitarAPI(
+    `/canchas/${idComplejo}/${encodeURIComponent(nombreCancha)}`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(datos)
+    },
+    'No se pudo modificar la cancha.'
+  )
+}
