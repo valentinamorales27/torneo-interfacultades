@@ -418,3 +418,22 @@ export async function crearCancha(datos) {
     'No se pudo crear la cancha.'
   )
 }
+
+
+ //eliminamos un complejo
+export async function eliminarComplejo(idComplejo) {
+  return solicitarAPI(
+    `/complejos/${idComplejo}`,
+    { method: 'DELETE' },
+    'No se pudo eliminar el complejo.'
+  )
+}
+
+//eliminamos una cancha
+export async function eliminarCancha(idComplejo, nombreCancha) {
+  return solicitarAPI(
+    `/canchas/${idComplejo}/${encodeURIComponent(nombreCancha)}`,
+    { method: 'DELETE' },
+    'No se pudo eliminar la cancha.'
+  )
+}
