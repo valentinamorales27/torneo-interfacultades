@@ -149,6 +149,93 @@ class TestComplejosCanchas(unittest.TestCase):
 
         self.assertEqual(respuesta.status_code, 401)
         conexion.assert_not_called()
+    
+    def test_administrador_puede_modificar_complejo(self):
+        self.iniciar_sesion("administrador")
+
+        conexion = MagicMock()
+        cursor = conexion.cursor.return_value
+        cursor.fetchone.return_value = {"id_complejo": 1}
+
+        with patch(
+            "routes.complejos.obtener_conexion",
+            return_value=conexion
+        ):
+            respuesta = self.cliente.put(
+                "/complejos/1",
+                json=self.complejo
+            )
+
+        self.assertEqual(respuesta.status_code, 200)
+        conexion.commit.assert_called_once()
+
+        consultas = [
+            llamada.args[0].upper()
+            for llamada in cursor.execute.call_args_list
+        ]
+
+        self.assertTrue(
+            any("UPDATE COMPLEJO" in consulta for consulta in consultas)
+        )
+
+    def test_planillero_no_puede_modificar_complejo(self):
+        self.iniciar_sesion("planillero")
+
+        with patch("routes.complejos.obtener_conexion") as conexion:
+            respuesta = self.cliente.put(
+                "/complejos/1",
+                json=self.complejo
+            )
+
+        self.assertEqual(respuesta.status_code, 403)
+        conexion.assert_not_called()
+
+    def test_administrador_puede_modificar_cancha(self):
+        self.iniciar_sesion("administrador")
+
+        conexion = MagicMock()
+        cursor = conexion.cursor.return_value
+        cursor.fetchone.return_value = {"nombre_cancha": "Cancha de Prueba"}
+
+        with patch(
+            "routes.canchas.obtener_conexion",
+            return_value=conexion
+        ):
+            respuesta = self.cliente.put(
+                "/canchas/1/Cancha%20de%20Prueba",
+                json={
+                    "superficie": "parquet",
+                    "techada": False
+                }
+            )
+
+        self.assertEqual(respuesta.status_code, 200)
+        conexion.commit.assert_called_once()
+
+        consultas = [
+            llamada.args[0].upper()
+            for llamada in cursor.execute.call_args_list
+        ]
+
+        self.assertTrue(
+            any("UPDATE CANCHA" in consulta for consulta in consultas)
+        )
+
+    def test_planillero_no_puede_modificar_cancha(self):
+        self.iniciar_sesion("planillero")
+
+        with patch("routes.canchas.obtener_conexion") as conexion:
+            respuesta = self.cliente.put(
+                "/canchas/1/Cancha%20de%20Prueba",
+                json={
+                    "superficie": "parquet",
+                    "techada": False
+                }
+            )
+
+        self.assertEqual(respuesta.status_code, 403)
+        conexion.assert_not_called()
+
 
 
 if __name__ == "__main__":

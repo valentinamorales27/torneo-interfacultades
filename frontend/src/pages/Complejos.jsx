@@ -8,7 +8,9 @@ import {
   crearComplejo,
   crearCancha,
   eliminarComplejo,
-  eliminarCancha
+  eliminarCancha,
+  modificarComplejo,
+  modificarCancha
 } from '../services/api'
 
 import { useTorneo } from '../context/TorneoContext'
@@ -41,6 +43,21 @@ function Complejos() {
     superficie: 'sintético',
     techada: false
   })
+
+  const [complejoEditando, setComplejoEditando] = useState(null)
+  const [canchaEditando, setCanchaEditando] = useState(null)
+
+  const [datosComplejoEditar, setDatosComplejoEditar] = useState({
+    nombre: '',
+    direccion: '',
+    departamento: ''
+  })
+
+  const [datosCanchaEditar, setDatosCanchaEditar] = useState({
+    superficie: 'sintético',
+    techada: false
+  })
+
 
 
   async function cargarDatos() {
@@ -209,6 +226,79 @@ function Complejos() {
   }
 
 
+  function comenzarEditarComplejo(complejo) {
+    if (!esAdministrador) return
+
+    setComplejoEditando(complejo)
+    setDatosComplejoEditar({
+      nombre: complejo.nombre,
+      direccion: complejo.direccion,
+      departamento: complejo.departamento
+    })
+    setError('')
+    setMensaje('')
+  }
+
+  async function guardarEdicionComplejo(evento) {
+    evento.preventDefault()
+    if (!esAdministrador || guardando || !complejoEditando) return
+
+    try {
+      setGuardando(true)
+      setError('')
+      setMensaje('')
+
+      await modificarComplejo(
+        complejoEditando.id_complejo,
+        datosComplejoEditar
+      )
+
+      await cargarDatos()
+      setComplejoEditando(null)
+      setMensaje('Complejo modificado correctamente.')
+    } catch (error) {
+      setError(error.message)
+    } finally {
+      setGuardando(false)
+    }
+  }
+
+  function comenzarEditarCancha(cancha) {
+    if (!esAdministrador) return
+
+    setCanchaEditando(cancha)
+    setDatosCanchaEditar({
+      superficie: cancha.superficie,
+      techada: Boolean(cancha.techada)
+    })
+    setError('')
+    setMensaje('')
+  }
+
+  async function guardarEdicionCancha(evento) {
+    evento.preventDefault()
+    if (!esAdministrador || guardando || !canchaEditando) return
+
+    try {
+      setGuardando(true)
+      setError('')
+      setMensaje('')
+
+      await modificarCancha(
+        canchaEditando.id_complejo,
+        canchaEditando.nombre_cancha,
+        datosCanchaEditar
+      )
+
+      await cargarDatos()
+      setCanchaEditando(null)
+      setMensaje('Cancha modificada correctamente.')
+    } catch (error) {
+      setError(error.message)
+    } finally {
+      setGuardando(false)
+    }
+  }
 
   return (
     <div style={{ display: 'grid', gap: '24px' }}>
@@ -320,18 +410,26 @@ function Complejos() {
                   <tr key={complejo.id_complejo}>
                     <td>{complejo.nombre}</td>
                     <td>{complejo.direccion}</td>
-                    <td>{complejo.departamento}</td>
+                    <td>{complejo.departamento}</td>                    
                     {esAdministrador && (
-                    <td>
-                      <button
-                        type="button"
-                        disabled={guardando}
-                        onClick={() => manejarEliminarComplejo(complejo)}
-                      >
-                        Eliminar
-                      </button>
-                    </td>
-                  )}
+                      <td>
+                        <button
+                          type="button"
+                          disabled={guardando}
+                          onClick={() => comenzarEditarComplejo(complejo)}
+                        >
+                          Modificar
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={guardando}
+                          onClick={() => manejarEliminarComplejo(complejo)}
+                        >
+                          Eliminar
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -340,6 +438,67 @@ function Complejos() {
         </div>
       </section>
 
+
+      {complejoEditando && esAdministrador && (
+        <section className="dashboard-panel" style={{ padding: '28px' }}>
+          <h3>Modificar complejo</h3>
+
+          <form
+            onSubmit={guardarEdicionComplejo}
+            style={{ display: 'grid', gap: '12px', marginTop: '20px' }}
+          >
+            <label>
+              Nombre
+              <input
+                value={datosComplejoEditar.nombre}
+                onChange={(e) => setDatosComplejoEditar({
+                  ...datosComplejoEditar,
+                  nombre: e.target.value
+                })}
+                required
+              />
+            </label>
+
+            <label>
+              Dirección
+              <input
+                value={datosComplejoEditar.direccion}
+                onChange={(e) => setDatosComplejoEditar({
+                  ...datosComplejoEditar,
+                  direccion: e.target.value
+                })}
+                required
+              />
+            </label>
+
+            <label>
+              Departamento
+              <input
+                value={datosComplejoEditar.departamento}
+                onChange={(e) => setDatosComplejoEditar({
+                  ...datosComplejoEditar,
+                  departamento: e.target.value
+                })}
+                required
+              />
+            </label>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button type="submit" disabled={guardando}>
+                Guardar cambios
+              </button>
+
+              <button
+                type="button"
+                disabled={guardando}
+                onClick={() => setComplejoEditando(null)}
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </section>
+      )}
 
       {/* CANCHAS */}
       <section className="dashboard-panel" style={{ padding: '28px' }}>
@@ -469,18 +628,26 @@ function Complejos() {
                     <td>{cancha.nombre_cancha}</td>
                     <td>{cancha.nombre_complejo}</td>
                     <td>{cancha.superficie}</td>
-                    <td>{Boolean(cancha.techada) ? 'Sí' : 'No'}</td>
+                    <td>{Boolean(cancha.techada) ? 'Sí' : 'No'}</td>                   
                     {esAdministrador && (
-                    <td>
-                      <button
-                        type="button"
-                        disabled={guardando}
-                        onClick={() => manejarEliminarCancha(cancha)}
-                      >
-                        Eliminar
-                      </button>
-                    </td>
-                  )}
+                      <td>
+                        <button
+                          type="button"
+                          disabled={guardando}
+                          onClick={() => comenzarEditarCancha(cancha)}
+                        >
+                          Modificar
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={guardando}
+                          onClick={() => manejarEliminarCancha(cancha)}
+                        >
+                          Eliminar
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -489,6 +656,58 @@ function Complejos() {
         </div>
 
       </section>
+      
+      {canchaEditando && esAdministrador && (
+        <section className="dashboard-panel" style={{ padding: '28px' }}>
+          <h3>Modificar cancha: {canchaEditando.nombre_cancha}</h3>
+
+          <form
+            onSubmit={guardarEdicionCancha}
+            style={{ display: 'grid', gap: '12px', marginTop: '20px' }}
+          >
+            <label>
+              Superficie
+              <select
+                value={datosCanchaEditar.superficie}
+                onChange={(e) => setDatosCanchaEditar({
+                  ...datosCanchaEditar,
+                  superficie: e.target.value
+                })}
+              >
+                <option value="sintético">Sintético</option>
+                <option value="parquet">Parquet</option>
+              </select>
+            </label>
+
+            <label>
+              <input
+                type="checkbox"
+                checked={datosCanchaEditar.techada}
+                onChange={(e) => setDatosCanchaEditar({
+                  ...datosCanchaEditar,
+                  techada: e.target.checked
+                })}
+              />
+              Cancha techada
+            </label>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button type="submit" disabled={guardando}>
+                Guardar cambios
+              </button>
+
+              <button
+                type="button"
+                disabled={guardando}
+                onClick={() => setCanchaEditando(null)}
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </section>
+      )}
+
     </div>
   )
 }
